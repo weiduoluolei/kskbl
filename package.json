@@ -1,0 +1,12 @@
+{
+  "name": "human-history",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render"
+  },
+  "dependencies": {
+    "remotion": "^4.0.0"
+  }
+}
