@@ -1,670 +1,1234 @@
+// ============================================================
+// 《大碗宽面》2D MV — 单文件版
+// 位置：src/Root.jsx
+// 合成 id：ShortCircuitVideo（与 .github/workflows/render.yml 对应）
+// 音轨：程序化生成的原创 120BPM 节拍（自动内嵌）
+// 如需换成真实歌曲：把 mp3 放进 public/song.mp3，
+// 将下方 <Audio src={TRACK} /> 替换为 <Audio src={staticFile("song.mp3")} />
+// ============================================================
+
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
+  Composition,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
-  useVideoConfig,
   registerRoot,
-  Composition,
+  delayRender,
+  continueRender,
 } from "remotion";
 
-export const VIDEO_CONFIG = {
-  width: 1920,
-  height: 1080,
-  fps: 30,
-  durationInFrames: 1015,
-};
-const THEME = {
-  bg: "#070b17",
-  bg2: "#0c1326",
-  panel: "#111c36",
-  panel2: "#16243f",
-  line: "#22335c",
-  text: "#eaf2ff",
-  sub: "#93a4c4",
-  cyan: "#3fe3ff",
-  amber: "#ffc247",
-  danger: "#ff4d5e",
-  danger2: "#ff9a3c",
-  good: "#3fe3a1",
-};
-const FONT = `"Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
-const MONO = `"JetBrains Mono","SFMono‑Regular",Consolas,monospace`;
-const clamp = {
-  extrapolateLeft: "clamp",
-  extrapolateRight: "clamp",
+/* ---------- 字体（Google Fonts + 系统 Noto CJK 兜底） ---------- */
+if (typeof document !== "undefined" && !document.getElementById("mv-font-style")) {
+  const st = document.createElement("style");
+  st.id = "mv-font-style";
+  st.textContent =
+    "@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;700;900&display=swap');";
+  document.head.appendChild(st);
+}
+
+const FONT = '"ZCOOL KuaiLe","Noto Sans SC","Noto Sans CJK SC",sans-serif';
+const FONT2 = '"Noto Sans SC","Noto Sans CJK SC",sans-serif';
+
+/* ---------- 主题色：夜市霓虹（暗夜紫黑 + 霓虹红金 + 翡翠绿） ---------- */
+const C = {
+  night: "#0e0821",
+  night2: "#241041",
+  plum: "#3b1428",
+  red: "#e23146",
+  red2: "#ff5470",
+  gold: "#ffcf4a",
+  gold2: "#ffe9a8",
+  jade: "#2ee6a8",
+  magenta: "#ff4fd8",
+  cream: "#fff3e2",
 };
 
-const mixHex = (a, b, t) => {
-  const p = (h) => [
-    parseInt(h.slice(1, 3), 16),
-    parseInt(h.slice(3, 5), 16),
-    parseInt(h.slice(5, 7), 16),
+const clampObj = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
+
+/* ---------- 节拍工具（120 BPM，1 拍 = 15 帧） ---------- */
+const BEAT = 15;
+const beatHit = (f) => Math.pow(1 - ((f % BEAT) + BEAT) % BEAT / BEAT, 3);
+
+/* ---------- 确定性随机 / 噪声 ---------- */
+const nz = (i) => {
+  const x = Math.sin(i * 12.9898) * 43758.5453;
+  return (x - Math.floor(x)) * 2 - 1;
+};
+const rnd = (i) => {
+  const x = Math.sin(i * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+/* ============================================================
+   音轨：程序化合成（原创 120BPM 中国风 Trap 小样，100 秒）
+   ============================================================ */
+function buildTrack() {
+  const sr = 22050;
+  const totalSec = 100;
+  const n = sr * totalSec;
+  const buf = new Float32Array(n);
+
+  const add = (start, dur, fn) => {
+    const s0 = Math.max(0, Math.floor(start * sr));
+    const s1 = Math.min(n, Math.floor((start + dur) * sr));
+    for (let i = s0; i < s1; i++) buf[i] += fn((i - s0) / sr, i);
+  };
+
+  /* 乐器 */
+  const kick = (t) => Math.sin(2 * Math.PI * 52 * t + 6.5 * Math.exp(-t * 17)) * Math.exp(-t * 7.5);
+  const clap = (t, i) => nz(i) * (Math.exp(-t * 24) + 0.5 * Math.exp(-t * 8)) * 0.5;
+  const hat = (t, i, v) =>
+    (nz(i * 1.37) * 0.22 + Math.sin(2 * Math.PI * 8300 * t) * 0.05) * Math.exp(-t * 80) * v;
+  const bass = (f0) => (t) =>
+    (Math.sin(2 * Math.PI * f0 * t) * 0.8 + Math.sin(2 * Math.PI * 2 * f0 * t) * 0.22) * Math.exp(-t * 1.9);
+  const pluck = (f0) => (t) =>
+    (Math.sin(2 * Math.PI * f0 * t + 2.4 * Math.exp(-t * 8)) * Math.exp(-t * 4.8) +
+      0.32 * Math.sin(2 * Math.PI * 2 * f0 * t) * Math.exp(-t * 8)) * 0.4;
+  const pad = (f0, dur) => (t) =>
+    ((Math.sin(2 * Math.PI * f0 * t) +
+      Math.sin(2 * Math.PI * f0 * 1.005 * t) +
+      Math.sin(2 * Math.PI * f0 * 0.995 * t)) /
+      3) *
+    Math.min(1, t / 0.8) *
+    Math.min(1, (dur - t) / 1.2) *
+    0.16;
+
+  /* A 五声音阶旋律（A C D E G），4 小节循环 */
+  const MEL = [
+    [440, 0, 523.25, 587.33, 0, 659.25, 587.33, 523.25],
+    [440, 0, 392, 440, 0, 523.25, 0, 440],
+    [587.33, 0, 659.25, 783.99, 0, 659.25, 587.33, 440],
+    [523.25, 0, 440, 392, 0, 440, 0, 0],
   ];
-  const [r1, g1, b1] = p(a);
-  const [r2, g2, b2] = p(b);
-  const k = Math.max(0, Math.min(1, t));
-  const r = Math.round(r1 + (r2 - r1) * k);
-  const g = Math.round(g1 + (g2 - g1) * k);
-  const bl = Math.round(b1 + (b2 - b1) * k);
-  return `rgb(${r},${g},${bl})`;
-};
+  const ROOTS = [110, 98, 130.81, 98];
+  const BAR = 2; // 2 秒/小节
 
-const SceneFade = ({ children }) => {
-  const f = useCurrentFrame();
-  const opacity = interpolate(f, [0, 10], [0, 1], clamp);
-  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
-};
+  for (let bar = 0; bar < 50; bar++) {
+    const t0 = bar * BAR;
+    const groove = (bar >= 4 && bar < 20) || (bar >= 24 && bar < 42);
+    const intro = bar < 4;
+    const brk = bar >= 20 && bar < 24;
+    const outro = bar >= 42;
 
-const Caption = ({ text, delay = 0 }) => {
-  const f = useCurrentFrame();
-  const y = interpolate(f - delay, [0, 12], [26, 0], clamp);
-  const o = interpolate(f - delay, [0, 12], [0, 1], clamp);
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 110,
-        right: 110,
-        bottom: 52,
-        display: "flex",
-        justifyContent: "center",
-        pointerEvents: "none",
-      }}
-    >
-      <div
-        style={{
-          transform: `translateY(${y}px)`,
-          opacity: o,
-          background: "rgba(8,13,26,0.82)",
-          border: `1px solid ${THEME.line}`,
-          borderRadius: 16,
-          padding: "18px 40px",
-          color: THEME.text,
-          fontSize: 34,
-          fontWeight: 500,
-          letterSpacing: 1.5,
-          backdropFilter: "blur(10px)",
-          boxShadow: "0 18px 44px rgba(0,0,0,0.45)",
-          textAlign: "center",
-          lineHeight: 1.5,
-        }}
-      >
-        {text}
-      </div>
-    </div>
-  );
-};
-
-const ActLabel = ({ num, title, color = THEME.cyan }) => {
-  const f = useCurrentFrame();
-  const o = interpolate(f, [0, 12], [0, 1], clamp);
-  const x = interpolate(f, [0, 14], [-24, 0], clamp);
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 56,
-        left: 76,
-        display: "flex",
-        alignItems: "center",
-        gap: 18,
-        opacity: o,
-        transform: `translateX(${x}px)`,
-      }}
-    >
-      <div
-        style={{
-          width: 10,
-          height: 42,
-          borderRadius: 6,
-          background: color,
-          boxShadow: `0 0 22px ${color}`,
-        }}
-      />
-      <div style={{ color: THEME.sub, fontSize: 22, letterSpacing: 6 }}>{num}</div>
-      <div
-        style={{
-          color: THEME.text,
-          fontSize: 30,
-          fontWeight: 700,
-          letterSpacing: 4,
-        }}
-      >
-        {title}
-      </div>
-    </div>
-  );
-};
-
-// =========修复：Title组件 spring补fps=========
-const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
-  const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-      {text.split("").map((ch, i) => {
-        const t = spring({
-          frame: f - delay - i * 3,
-          fps,
-          config: { damping: 12, stiffness: 130 },
-        });
-        return (
-          <span
-            key={i}
-            style={{
-              fontSize: size,
-              fontWeight: 900,
-              color,
-              letterSpacing: size * 0.05,
-              lineHeight: 1.18,
-              opacity: t,
-              transform: `translateY(${(1 - t) * 42}px) scale(${0.86 + 0.14 * t})`,
-              display: "inline‑block",
-              whiteSpace: "pre",
-            }}
-          >
-            {ch}
-          </span>
-        );
-      })}
-    </div>
-  );
-};
-
-const Panel = ({ children, style, glow }) => (
-  <div
-    style={{
-      background: `linear‑gradient(155deg, ${THEME.panel} 0%, ${THEME.panel2} 100%)`,
-      border: `1px solid ${THEME.line}`,
-      borderRadius: 24,
-      boxShadow: glow
-        ? `0 26px 70px rgba(0,0,0,0.5), 0 0 50px ${glow}`
-        : "0 26px 70px rgba(0,0,0,0.5)",
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
-
-// =========修复：AlertBadge spring补fps=========
-const AlertBadge = ({ label = "危险！" }) => {
-  const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = spring({ frame: f, fps, config: { damping: 8, stiffness: 170 } });
-  const pulse = 0.55 + 0.45 * Math.abs(Math.sin(f / 7));
-  return (
-    <div
-      style={{
-        display: "inline‑flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "10px 22px",
-        borderRadius: 999,
-        background: `rgba(255,77,94,${0.12 + 0.12 * pulse})`,
-        border: `2px solid rgba(255,77,94,${0.5 + 0.5 * pulse})`,
-        color: THEME.danger,
-        fontSize: 26,
-        fontWeight: 800,
-        letterSpacing: 3,
-        transform: `scale(${s})`,
-        boxShadow: `0 0 ${26 * pulse}px rgba(255,77,94,0.55)`,
-      }}
-    >
-      <span style={{ fontSize: 28 }}>⚠</span>
-      {label}
-    </div>
-  );
-};
-
-const Counter = ({ value, unit, color, digits = 1 }) => {
-  const f = useCurrentFrame();
-  const v = value * interpolate(f, [0, 18], [0, 1], clamp);
-  return (
-    <span style={{ fontFamily: MONO, fontWeight: 700 }}>
-      <span style={{ color, fontSize: 52 }}>{v.toFixed(digits)}</span>
-      <span style={{ color: THEME.sub, fontSize: 26, marginLeft: 8 }}>{unit}</span>
-    </span>
-  );
-};
-
-const Backdrop = () => {
-  const f = useCurrentFrame();
-  const drift = Math.sin(f / 90) * 30;
-  return (
-    <AbsoluteFill style={{ background: THEME.bg, overflow: "hidden" }}>
-      <div
-        style={{
-          position: "absolute",
-          width: 1400,
-          height: 1400,
-          left: -320 + drift,
-          top: -520,
-          background: `radial‑gradient(circle, rgba(63,227,255,0.15) 0%, transparent 62%)`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          width: 1300,
-          height: 1300,
-          right: -420 - drift,
-          bottom: -560,
-          background: `radial‑gradient(circle, rgba(255,77,94,0.14) 0%, transparent 62%)`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: `linear‑gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
-                            linear‑gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)`,
-          backgroundSize: "72px 72px",
-          maskImage: "radial‑gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
-          WebkitMaskImage: "radial‑gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
-        }}
-      />
-    </AbsoluteFill>
-  );
-};
-
-const GEO = {
-  x1: 270, x2: 1030, y1: 230, y2: 560,
-  bulbX: 650, swX: 860, bx1: 690, bx2: 990, by: 400,
-  ex1: 350, ex2: 500,
-};
-
-const PATH_LOOP = [
-  { x: GEO.x1, y: GEO.y2 },
-  { x: GEO.x2, y: GEO.y2 },
-  { x: GEO.x2, y: GEO.y1 },
-  { x: GEO.swX, y: GEO.y1 },
-  { x: GEO.bx2, y: GEO.y1 },
-  { x: GEO.bulbX, y: GEO.y1 },
-  { x: GEO.bx1, y: GEO.y1 },
-  { x: GEO.x1, y: GEO.y1 },
-  { x: GEO.x1, y: GEO.y2 },
-];
-
-const ptAt = (p) => {
-  const segLens = [];
-  let total = 0;
-  for (let i = 0; i < PATH_LOOP.length - 1; i++) {
-    const a = PATH_LOOP[i];
-    const b = PATH_LOOP[i + 1];
-    const l = Math.hypot(b.x - a.x, b.y - a.y);
-    segLens.push(l);
-    total += l;
-  }
-  let d = ((p % 1) + 1) % 1;
-  d *= total;
-  for (let i = 0; i < segLens.length; i++) {
-    if (d <= segLens[i]) {
-      const a = PATH_LOOP[i];
-      const b = PATH_LOOP[i + 1];
-      const k = segLens[i] === 0 ? 0 : d / segLens[i];
-      return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
-    }
-    d -= segLens[i];
-  }
-  return PATH_LOOP[PATH_LOOP.length - 1];
-};
-
-const Electron = ({ x, y, color, r }) => (
-  <circle cx={x} cy={y} r={r} fill={color} style={{ filter: `drop‑shadow(0 0 ${r * 3}px ${color})` }} />
-);
-
-const BulbGlass = ({ color, glow }) => (
-  <>
-    <circle cx={GEO.bulbX} cy={GEO.y1} r={54} fill="rgba(255,255,255,0.045)" stroke={color} strokeWidth={4} />
-    {glow > 0.01 && (
-      <circle
-        cx={GEO.bulbX}
-        cy={GEO.y1}
-        r={54 + 34 * glow}
-        fill="none"
-        stroke={color}
-        strokeWidth={3 + 4 * glow}
-        opacity={0.28 * glow}
-        style={{ filter: `blur(${6 + 10 * glow}px)` }}
-      />
-    )}
-    <path
-      d={`M ${GEO.bulbX - 17} ${GEO.y1 + 18} L ${GEO.bulbX - 8} ${GEO.y1 - 4} L ${GEO.bulbX} ${GEO.y1 + 12} L ${GEO.bulbX + 8} ${GEO.y1 - 4} L ${GEO.bulbX + 17} ${GEO.y1 + 18}`}
-      fill="none"
-      stroke={color}
-      strokeWidth={4.5}
-      strokeLinecap="round"
-      opacity={0.35 + 0.65 * glow}
-    />
-  </>
-);
-
-const BatterySymbol = ({ color }) => (
-  <g>
-    <rect x={GEO.ex1 - 60} y={GEO.y2 - 26} width={GEO.ex2 - GEO.ex1 + 120} height={52} rx={12} fill="rgba(63,227,255,0.06)" stroke="rgba(63,227,255,0.22)" strokeWidth={2} />
-    <line x1={GEO.ex1} y1={GEO.y2 - 30} x2={GEO.ex1} y2={GEO.y2 + 30} stroke={color} strokeWidth={7} strokeLinecap="round" />
-    <line x1={GEO.ex1 + 26} y1={GEO.y2 - 17} x2={GEO.ex1 + 26} y2={GEO.y2 + 17} stroke={color} strokeWidth={5} strokeLinecap="round" />
-    <line x1={GEO.ex2 - 26} y1={GEO.y2 - 30} x2={GEO.ex2 - 26} y2={GEO.y2 + 30} stroke={color} strokeWidth={7} strokeLinecap="round" />
-    <line x1={GEO.ex2} y1={GEO.y2 - 17} x2={GEO.ex2} y2={GEO.y2 + 17} stroke={color} strokeWidth={5} strokeLinecap="round" />
-    <text x={GEO.ex2 + 30} y={GEO.y2 + 12} fill={THEME.sub} fontSize={30} fontFamily={MONO} fontWeight={700}>电源</text>
-    <text x={GEO.ex2 + 30} y={GEO.y2 + 50} fill={color} fontSize={24} fontFamily={MONO} opacity={0.85}>U = 220 V</text>
-  </g>
-);
-
-// =========修复 CircuitDemo spring补fps=========
-const CircuitDemo = ({ shorted }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const toShort = shorted
-    ? spring({ frame, fps, config: { damping: 13, stiffness: 110 }, durationInFrames: 34 })
-    : 0;
-  const heat = shorted ? interpolate(frame, [22, 72], [0, 1], clamp) : 0;
-  const wireColor = mixHex("#4d83b8", "#ff5a2e", heat);
-  const glowBulb = shorted ? interpolate(frame, [0, 26], [1, 0], clamp) : 1;
-  const bypassDash = 360 * (1 - toShort);
-
-  const speed = shorted ? 0.026 : 0.0075;
-  const eCount = shorted ? 26 : 18;
-  const electrons = [];
-  for (let i = 0; i < eCount; i++) {
-    const p = ptAt(i / eCount + frame * speed);
-    const onBypass =
-      shorted &&
-      toShort > 0.55 &&
-      ((p.x >= GEO.bx1 - 8 && p.x <= GEO.bx2 + 8 && Math.abs(p.y - GEO.y1) < 8) ||
-        Math.abs(p.x - GEO.bx1) < 8 ||
-        Math.abs(p.x - GEO.bx2) < 8);
-    const pos = shorted && toShort > 0.55 && Math.abs(p.y - GEO.y1) < 10
-      ? { x: Math.min(GEO.bx2, Math.max(GEO.bx1, p.x)), y: GEO.by + Math.sin(frame / 4 + i) * 6 }
-      : p;
-    electrons.push(<Electron key={i} x={pos.x} y={pos.y} r={onBypass ? 7.5 : 6} color={onBypass ? THEME.danger2 : THEME.cyan} />);
-  }
-
-  const sparks = [];
-  if (shorted && frame > 18 && frame < 130) {
-    for (let i = 0; i < 16; i++) {
-      const birth = 18 + i * 6;
-      const t = (frame - birth) / 26;
-      if (t > 0 && t < 1) {
-        const ang = (i / 16) * Math.PI * 2 + i;
-        const r = t * (110 + (i % 5) * 30);
-        sparks.push(
-          <circle
-            key={i}
-            cx={GEO.bx2 + Math.cos(ang) * r}
-            cy={GEO.y1 + Math.sin(ang) * r * 0.8}
-            r={5 * (1 - t)}
-            fill={i % 2 ? THEME.danger2 : THEME.cyan}
-            opacity={1 - t}
-            style={{ filter: "drop‑shadow(0 0 8px rgba(255,154,60,0.9))" }}
-          />
-        );
+    if (groove) {
+      add(t0, 0.45, kick);
+      add(t0 + 1.25, 0.45, kick);
+      if (bar % 2 === 1) add(t0 + 1.875, 0.25, kick);
+      add(t0 + 1.0, 0.3, clap);
+      for (let h = 0; h < 8; h++) {
+        const v = [1, 0.45, 0.7, 0.45, 1, 0.5, 0.9, 0.55][h];
+        add(t0 + h * 0.25, 0.12, (t, i) => hat(t, i + bar * 31 + h * 7, v));
       }
+      if (bar % 4 === 3) {
+        for (let r = 0; r < 4; r++) add(t0 + 1.5 + r * 0.0625, 0.08, (t, i) => hat(t, i + r * 13, 0.8));
+      }
+    } else if (intro || outro) {
+      for (let h = 0; h < 4; h++) add(t0 + h * 0.5, 0.12, (t, i) => hat(t, i + bar * 17, 0.55));
+    } else if (brk) {
+      add(t0 + 1.0, 0.3, (t, i) => clap(t, i) * 0.5);
     }
+
+    const root = ROOTS[bar % 4];
+    if (groove || brk) {
+      add(t0, 0.7, bass(root));
+      if (groove) add(t0 + 1.25, 0.55, bass(root * 0.75));
+    }
+
+    const phrase = MEL[bar % 4];
+    for (let s = 0; s < 8; s++) {
+      const f0 = phrase[s];
+      if (!f0) continue;
+      const gain = intro || outro ? 0.75 : 1;
+      const tt = t0 + s * 0.25;
+      add(tt, 0.6, (t) => pluck(f0)(t) * gain);
+      add(tt + 0.25, 0.5, (t) => pluck(f0)(t) * 0.3 * gain);
+      add(tt + 0.5, 0.4, (t) => pluck(f0)(t) * 0.12 * gain);
+    }
+
+    if (bar % 2 === 0) add(t0, 4, pad(root * 2, 4));
   }
 
+  /* 淡入淡出 + 归一化 */
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    if (t < 0.6) buf[i] *= t / 0.6;
+    if (t > 96) buf[i] *= Math.max(0, (100 - t) / 4);
+  }
+  let peak = 0;
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(buf[i]));
+  const g = peak > 0 ? 0.86 / peak : 1;
+
+  /* WAV 编码（16bit 单声道） */
+  const bytes = new Uint8Array(44 + n * 2);
+  const dv = new DataView(bytes.buffer);
+  const wStr = (o, s) => {
+    for (let k = 0; k < s.length; k++) dv.setUint8(o + k, s.charCodeAt(k));
+  };
+  wStr(0, "RIFF");
+  dv.setUint32(4, 36 + n * 2, true);
+  wStr(8, "WAVE");
+  wStr(12, "fmt ");
+  dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true);
+  dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr * 2, true);
+  dv.setUint16(32, 2, true);
+  dv.setUint16(34, 16, true);
+  wStr(36, "data");
+  dv.setUint32(40, n * 2, true);
+  let off = 44;
+  for (let i = 0; i < n; i++) {
+    const s = Math.max(-1, Math.min(1, buf[i] * g));
+    dv.setInt16(off, s < 0 ? s * 32768 : s * 32767, true);
+    off += 2;
+  }
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return "data:audio/wav;base64," + btoa(bin);
+}
+
+const TRACK = typeof window !== "undefined" ? buildTrack() : "";
+
+/* ============================================================
+   通用小组件
+   ============================================================ */
+
+const Stars = () => {
+  const f = useCurrentFrame();
   return (
-    <svg viewBox="0 0 1300 760" width="100%" height="100%">
-      <rect x={40} y={40} width={1220} height={680} rx={30} fill="rgba(255,255,255,0.018)" stroke="rgba(255,255,255,0.05)" />
-      <path d={`M ${GEO.x1} ${GEO.y2} L ${GEO.x2} ${GEO.y2} L ${GEO.x2} ${GEO.y1} L ${GEO.x1} ${GEO.y1} Z`} fill="none" stroke={wireColor} strokeWidth={8} strokeLinejoin="round" opacity={0.9} />
-      <BatterySymbol color={THEME.cyan} />
-      <BulbGlass color={mixHex(THEME.amber, "#42506e", 1 - glowBulb)} glow={glowBulb} />
-      <text x={GEO.bulbX} y={GEO.y1 + 108} textAnchor="middle" fill={THEME.sub} fontSize={26}>小灯泡（用电器）</text>
-      <path
-        d={`M ${GEO.bx1} ${GEO.y1} C ${GEO.bx1} ${GEO.by}, ${GEO.bx2} ${GEO.by}, ${GEO.bx2} ${GEO.y1}`}
-        fill="none"
-        stroke={mixHex(THEME.danger, THEME.danger2, heat)}
-        strokeWidth={9}
-        strokeLinecap="round"
-        strokeDasharray={bypassDash > 0 ? `${bypassDash} 400` : undefined}
-        style={{
-          filter: `drop‑shadow(0 0 ${6 + 22 * heat}px rgba(255,90,46,${0.35 + 0.5 * heat}))`,
-          opacity: 0.35 + 0.65 * toShort,
-        }}
-      />
-      {electrons}
-      {sparks}
+    <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+      {Array.from({ length: 46 }).map((_, i) => {
+        const x = rnd(i * 3.1) * 1920;
+        const y = rnd(i * 7.7) * 640;
+        const r = 1 + rnd(i * 5.3) * 2.4;
+        const o = 0.25 + 0.75 * Math.abs(Math.sin(f / 22 + i * 1.9));
+        return <circle key={i} cx={x} cy={y} r={r} fill="#fff6d8" opacity={o} />;
+      })}
     </svg>
   );
 };
 
-const SceneHook = () => {
+const NeonChar = ({ ch, delay, color }) => {
   const f = useCurrentFrame();
-  const ignite = interpolate(f, [40, 52], [0, 1], clamp);
-  const shake = f >= 46 && f <= 76 ? Math.sin(f * 2.1) * (10 - (f - 46) * 0.3) : 0;
-  const flash = interpolate(f, [46, 52, 62], [0, 0.55, 0], clamp);
-  const dash = 340 * (1 - ignite);
+  const on = f >= delay;
+  const unstable = on && f < delay + 22;
+  const lit = !on
+    ? 0
+    : unstable
+    ? Math.sin(f * 2.3) * Math.sin(f * 0.77) > -0.35
+      ? 1
+      : 0.25
+    : 1;
   return (
-    <SceneFade>
-      <AbsoluteFill style={{ transform: `translateX(${shake}px)`, fontFamily: FONT }}>
-        <ActLabel num="00" title="开场" color={THEME.danger} />
-        <div style={{ position: "absolute", left: 120, top: 190, width: 880, height: 620 }}>
-          <svg viewBox="0 0 880 620" width="100%" height="100%">
-            <rect x={30} y={260} width={190} height={70} rx={16} fill="rgba(63,227,255,0.08)" stroke="rgba(63,227,255,0.3)" strokeWidth={2} />
-            <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={700}>电源</text>
-            <path d="M 220 295 L 420 295 L 420 170 L 640 170 L 640 420 L 220 420" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinecap="round" />
-            <circle cx={640} cy={285} r={86} fill="rgba(255,194,71,0.08)" stroke={mixHex("#42506e", THEME.amber, ignite)} strokeWidth={5} />
-            <path d="M 618 312 L 632 268 L 646 300 L 660 268 L 674 312" fill="none" stroke={mixHex("#42506e", THEME.amber, ignite)} strokeWidth={6} strokeLinecap="round" />
-            <path d="M 640 170 C 760 210, 760 360, 640 420" fill="none" stroke={THEME.danger} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${dash} 400`} />
+    <div
+      style={{
+        fontFamily: FONT,
+        fontSize: 168,
+        color: color,
+        opacity: lit,
+        textShadow: `0 0 12px ${color}, 0 0 38px ${color}, 0 0 90px ${color}, 0 0 150px ${color}`,
+        transform: `translateY(${(1 - lit) * 6}px)`,
+      }}
+    >
+      {ch}
+    </div>
+  );
+};
+
+const NeonRow = ({ top }) => (
+  <div
+    style={{
+      position: "absolute",
+      top: top,
+      width: 1920,
+      display: "flex",
+      justifyContent: "center",
+      gap: 42,
+    }}
+  >
+    {["大", "碗", "宽", "面"].map((ch, i) => (
+      <NeonChar key={i} ch={ch} delay={10 + i * 12} color={i % 2 ? C.gold : C.red2} />
+    ))}
+  </div>
+);
+
+const Lantern = ({ x, y, s, phase, glow }) => {
+  const f = useCurrentFrame();
+  const sway = Math.sin(f / 24 + phase) * 6;
+  const bright = (glow === undefined ? 1 : glow) * (0.8 + 0.2 * Math.sin(f / 9 + phase));
+  return (
+    <g transform={`translate(${x},${y}) rotate(${sway}) scale(${s})`}>
+      <line x1="0" y1="-200" x2="0" y2="-84" stroke="#7c1e2b" strokeWidth="7" />
+      <ellipse cx="0" cy="0" rx="82" ry="96" fill={`rgba(255,130,80,${0.18 * bright})`} />
+      <ellipse cx="0" cy="0" rx="58" ry="70" fill="#d92f43" />
+      <ellipse cx="0" cy="0" rx="58" ry="70" fill="none" stroke="#ff7a5c" strokeWidth="3" opacity="0.5" />
+      <path d="M -58 -18 Q 0 8 58 -18" fill="none" stroke="#ff8b6b" strokeWidth="3" opacity="0.55" />
+      <path d="M -58 18 Q 0 48 58 18" fill="none" stroke="#ff8b6b" strokeWidth="3" opacity="0.55" />
+      <rect x="-26" y="-88" width="52" height="18" rx="6" fill="#e9b53c" />
+      <rect x="-26" y="70" width="52" height="18" rx="6" fill="#e9b53c" />
+      <path d="M 0 88 L 0 132" stroke="#e9b53c" strokeWidth="7" strokeLinecap="round" />
+      <path d="M -10 132 L 10 132 L 4 178 L -4 178 Z" fill="#ffcf4a" />
+    </g>
+  );
+};
+
+const Chili = ({ x, y, s, rot }) => (
+  <g transform={`translate(${x},${y}) rotate(${rot}) scale(${s})`}>
+    <path
+      d="M 0 0 C 26 12, 32 52, 8 76 C -12 92, -36 84, -30 64 C -24 44, -8 40, 0 22 Z"
+      fill="#e0233a"
+    />
+    <path
+      d="M -6 -8 C 6 -22, 24 -16, 22 -2"
+      fill="none"
+      stroke="#2f9e5c"
+      strokeWidth="9"
+      strokeLinecap="round"
+    />
+  </g>
+);
+
+const Scallion = ({ x, y, s, rot }) => (
+  <g transform={`translate(${x},${y}) rotate(${rot}) scale(${s})`}>
+    <rect x="-14" y="-48" width="28" height="96" rx="14" fill="#dff2c2" />
+    <rect x="-14" y="-48" width="28" height="36" rx="14" fill="#3fae5c" />
+  </g>
+);
+
+const Sunburst = () => {
+  const f = useCurrentFrame();
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: -340,
+        top: -460,
+        width: 2600,
+        height: 2600,
+        borderRadius: "50%",
+        background: `repeating-conic-gradient(from ${f * 0.12}deg, rgba(255,207,74,0.13) 0deg 10deg, transparent 10deg 20deg)`,
+      }}
+    />
+  );
+};
+
+const CheckerFloor = () => {
+  const f = useCurrentFrame();
+  return (
+    <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#1b0f33,#2c1247)" }} />
+      <div
+        style={{
+          position: "absolute",
+          left: -300,
+          right: -300,
+          bottom: -100,
+          height: 720,
+          transform: "perspective(650px) rotateX(64deg)",
+          transformOrigin: "center bottom",
+          backgroundImage: "repeating-conic-gradient(#2b1546 0% 25%, #46217a 0% 50%)",
+          backgroundSize: "170px 170px",
+          backgroundPosition: `0px ${f * 5}px`,
+        }}
+      />
+    </>
+  );
+};
+
+const StripeBG = () => {
+  const f = useCurrentFrame();
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background: `repeating-linear-gradient(${115 + Math.sin(f / 40) * 8}deg, #2a0f22 0 70px, #45142f 70px 140px)`,
+      }}
+    />
+  );
+};
+
+const WaveBG = () => {
+  const f = useCurrentFrame();
+  return (
+    <>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#101b3a,#2b1140)" }} />
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        {Array.from({ length: 7 }).map((_, i) => (
+          <path
+            key={i}
+            d={`M -50 ${260 + i * 120} Q 480 ${180 + i * 120 + Math.sin(f / 16 + i) * 70} 960 ${260 + i * 120} T 1970 ${260 + i * 120}`}
+            fill="none"
+            stroke={i % 2 ? "rgba(255,79,216,0.30)" : "rgba(46,230,168,0.26)"}
+            strokeWidth="10"
+          />
+        ))}
+      </svg>
+    </>
+  );
+};
+
+const Marquee = ({ text, y, speed, color, size }) => {
+  const f = useCurrentFrame();
+  const unit = text.length * (size * 0.95 + 26);
+  const x = -((((f * speed) % unit) + unit) % unit);
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: y,
+        left: 0,
+        width: 1920,
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <div
+        style={{
+          transform: `translateX(${x}px)`,
+          fontFamily: FONT,
+          fontSize: size,
+          color: color,
+          letterSpacing: 12,
+        }}
+      >
+        {Array.from({ length: 8 }).map((_, i) => (
+          <span key={i}>{text}　·　</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BowlGroup = ({ x, y, s, lift }) => {
+  const f = useCurrentFrame();
+  return (
+    <g transform={`translate(${x},${y}) scale(${s})`}>
+      {/* 碗身 */}
+      <path d="M -250 -30 C -240 140, -130 215, 0 215 C 130 215, 240 140, 250 -30 Z" fill="#c9302f" />
+      <path
+        d="M -250 -30 C -240 140, -130 215, 0 215 C 130 215, 240 140, 250 -30 Z"
+        fill="none"
+        stroke="#ff6a5c"
+        strokeWidth="5"
+        opacity="0.5"
+      />
+      <path
+        d="M -210 62 C -120 122, 120 122, 210 62"
+        fill="none"
+        stroke="#e9b53c"
+        strokeWidth="12"
+        opacity="0.85"
+        strokeDasharray="34 22"
+      />
+      <ellipse cx="0" cy="-30" rx="250" ry="52" fill="#8e1f28" />
+      <ellipse cx="0" cy="-36" rx="222" ry="42" fill="#a3441c" />
+      {/* 面条堆 */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const yy = -72 + i * 13;
+        const amp = 14 + (i % 3) * 9;
+        return (
+          <path
+            key={i}
+            d={`M -170 ${yy} C -90 ${yy - amp + Math.sin(f / 11 + i) * 7}, -30 ${yy + amp}, 40 ${yy - amp * 0.5 + Math.sin(f / 13 + i * 2) * 9} S 150 ${yy + amp * 0.5}, 178 ${yy + 2}`}
+            fill="none"
+            stroke={i % 2 ? "#f7e0a4" : "#eed08c"}
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+        );
+      })}
+      {/* 筷子 */}
+      <g transform="translate(150,-252) rotate(18)">
+        <rect x="-8" y="-10" width="16" height="232" rx="8" fill="#caa06a" />
+        <rect x="18" y="-10" width="16" height="232" rx="8" fill="#b98d54" />
+      </g>
+      {/* 提起的面条 */}
+      <path
+        d={`M 122 -232 C 62 ${-172 + Math.sin(f / 8) * 16 + lift}, 22 -122, -28 -86`}
+        fill="none"
+        stroke="#f7e0a4"
+        strokeWidth="11"
+        strokeLinecap="round"
+      />
+      <path
+        d={`M 134 -234 C 76 ${-164 + Math.sin(f / 8 + 1) * 16 + lift}, 32 -112, -10 -78`}
+        fill="none"
+        stroke="#eed08c"
+        strokeWidth="9"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+};
+
+/* ============================================================
+   场景 1：霓虹开场（钩子）
+   ============================================================ */
+const SceneIntro = () => {
+  const f = useCurrentFrame();
+  const zoom = interpolate(f, [0, 380], [1.05, 1], clampObj);
+  return (
+    <AbsoluteFill
+      style={{
+        background: `linear-gradient(180deg, ${C.night} 0%, ${C.night2} 52%, ${C.plum} 100%)`,
+        transform: `scale(${zoom})`,
+        opacity: interpolate(f, [0, 12, 368, 380], [0, 1, 1, 0], clampObj),
+        overflow: "hidden",
+      }}
+    >
+      <Stars />
+      {/* 月亮 */}
+      <div
+        style={{
+          position: "absolute",
+          right: 200,
+          top: 120,
+          width: 170,
+          height: 170,
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 35% 32%, #fff6d8, #f2c25e)",
+          boxShadow: "0 0 110px rgba(242,194,94,0.5)",
+        }}
+      />
+
+      {/* 店面 */}
+      <div
+        style={{
+          position: "absolute",
+          left: 300,
+          top: 250,
+          width: 1320,
+          height: 660,
+          background: "linear-gradient(180deg,#31162a,#22101f)",
+          borderRadius: 26,
+          border: "3px solid rgba(255,207,74,0.35)",
+          boxShadow: "0 50px 120px rgba(0,0,0,0.55)",
+        }}
+      >
+        {/* 遮阳棚 */}
+        <div
+          style={{
+            position: "absolute",
+            top: -36,
+            left: -18,
+            right: -18,
+            height: 96,
+            borderRadius: 18,
+            background: `repeating-linear-gradient(90deg, ${C.red} 0 90px, ${C.cream} 90px 180px)`,
+            boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
+          }}
+        />
+        {/* 橱窗 */}
+        <div
+          style={{
+            position: "absolute",
+            left: 90,
+            top: 150,
+            right: 90,
+            bottom: 90,
+            borderRadius: 20,
+            background:
+              "radial-gradient(ellipse at 50% 70%, rgba(255,190,110,0.55), rgba(255,140,60,0.12) 65%, rgba(255,140,60,0.04))",
+            border: "3px solid rgba(255,207,74,0.5)",
+            overflow: "hidden",
+          }}
+        >
+          <svg width="100%" height="100%" viewBox="0 0 1140 420" preserveAspectRatio="xMidYMid slice">
+            <rect x="0" y="320" width="1140" height="100" fill="#4b2417" />
+            <ellipse cx="330" cy="320" rx="90" ry="24" fill="#e0d3b2" />
+            <path d="M 240 320 C 250 382, 410 382, 420 320 Z" fill="#f2ead2" />
+            <ellipse cx="700" cy="332" rx="120" ry="28" fill="#d9c9a2" />
+            <path d="M 580 332 C 595 404, 805 404, 820 332 Z" fill="#efe4c6" />
+            {[0, 1, 2].map((i) => (
+              <ellipse
+                key={i}
+                cx={330 + i * 22}
+                cy={230 - ((f * 1.1 + i * 40) % 170)}
+                rx={26 + i * 6}
+                ry={16}
+                fill="rgba(255,255,255,0.16)"
+              />
+            ))}
           </svg>
         </div>
-        <div style={{ position: "absolute", right: 110, top: 250, width: 720, textAlign: "right" }}>
-          <div style={{ color: THEME.sub, fontSize: 26, letterSpacing: 10, marginBottom: 20 }}>初中物理 · 安全用电</div>
-          <Title text="一根导线" size={92} color={THEME.text} />
-          <div style={{ height: 18 }} />
-          <Title text="就能引发火灾" size={92} color={THEME.danger} delay={14} />
-          <div style={{ marginTop: 46, display: "flex", justifyContent: "flex‑end" }}>
-            <AlertBadge label="短路 = 失控的大电流" />
-          </div>
+      </div>
+
+      {/* 霓虹招牌 */}
+      <NeonRow top={112} />
+      <div
+        style={{
+          position: "absolute",
+          top: 352,
+          width: 1920,
+          textAlign: "center",
+          fontFamily: FONT2,
+          fontSize: 30,
+          letterSpacing: 16,
+          color: C.gold2,
+          opacity: interpolate(f, [80, 110], [0, 0.9], clampObj),
+          textShadow: `0 0 18px ${C.gold}`,
+        }}
+      >
+        BIG BOWL WIDE NOODLES
+      </div>
+
+      {/* 底部文案 */}
+      <div style={{ position: "absolute", bottom: 118, width: 1920, textAlign: "center" }}>
+        <div
+          style={{
+            fontFamily: FONT,
+            fontSize: 58,
+            color: C.cream,
+            letterSpacing: 10,
+            opacity: interpolate(f, [130, 170], [0, 1], clampObj),
+            textShadow: "0 8px 30px rgba(0,0,0,0.6)",
+          }}
+        >
+          夜市 · 一碗热气腾腾的宽面
         </div>
-        <AbsoluteFill style={{ background: "#fff", opacity: flash, mixBlendMode: "overlay" }} />
-        <Caption text="一根小小的导线，为什么能引发一场火灾？" delay={4} />
-        <Caption text="答案，就藏在「短路」这两个字里。" delay={78} />
-      </AbsoluteFill>
-    </SceneFade>
+        <div
+          style={{
+            marginTop: 18,
+            fontFamily: FONT2,
+            fontSize: 26,
+            color: "rgba(255,243,226,0.62)",
+            letterSpacing: 8,
+            opacity: interpolate(f, [170, 205], [0, 1], clampObj),
+          }}
+        >
+          2D MV 概念样片 · MADE WITH REMOTION
+        </div>
+      </div>
+
+      {/* 灯笼 */}
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        <Lantern x={210} y={300} s={0.9} phase={0} />
+        <Lantern x={1710} y={310} s={0.9} phase={1.6} />
+      </svg>
+    </AbsoluteFill>
   );
 };
 
-// =========修复 SceneWhat spring补fps=========
-const SceneWhat = () => {
+/* ============================================================
+   场景 2：大字动态排版
+   ============================================================ */
+const SceneKinetic = () => {
   const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const reveal = spring({ frame: f - 22, fps, config: { damping: 14, stiffness: 120 } });
-  const grow = interpolate(f, [70, 120], [0, 1], clamp);
+  const seg = 110;
+  const idx = Math.min(3, Math.floor(f / seg));
+  const lf = f - idx * seg;
+  const chars = ["大", "碗", "宽", "面"];
+  const tags = ["BIG", "BOWL", "WIDE", "NOODLES"];
+  const colors = [C.gold, C.red2, C.jade, C.magenta];
+  const color = colors[idx];
+  const s = spring({ frame: lf, config: { damping: 11, stiffness: 130 }, durationInFrames: 34 });
+  const exit = interpolate(lf, [seg - 16, seg], [1, 0], clampObj);
+
   return (
-    <SceneFade>
-      <AbsoluteFill style={{ fontFamily: FONT }}>
-        <ActLabel num="01" title="什么是短路" />
-        <div style={{ position: "absolute", top: 150, width: "100%", textAlign: "center" }}>
-          <Title text="电流，找到了一条“捷径”" size={78} />
+    <AbsoluteFill
+      style={{
+        background: C.night,
+        opacity: interpolate(f, [0, 12, 428, 440], [0, 1, 1, 0], clampObj),
+        overflow: "hidden",
+      }}
+    >
+      {idx === 0 ? <Sunburst /> : null}
+      {idx === 1 ? <CheckerFloor /> : null}
+      {idx === 2 ? <StripeBG /> : null}
+      {idx === 3 ? <WaveBG /> : null}
+
+      {/* 英文水印 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 320,
+          width: 1920,
+          textAlign: "center",
+          fontFamily: FONT2,
+          fontSize: 250,
+          fontWeight: 900,
+          color: "transparent",
+          WebkitTextStroke: "3px rgba(255,255,255,0.10)",
+          letterSpacing: 30,
+        }}
+      >
+        {tags[idx]}
+      </div>
+
+      {/* 主字 */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: FONT,
+            fontSize: 430,
+            color: color,
+            opacity: exit,
+            transform: `scale(${0.35 + s * 0.75}) rotate(${(1 - s) * -10}deg)`,
+            textShadow: `0 0 40px ${color}, 0 26px 60px rgba(0,0,0,0.55)`,
+          }}
+        >
+          {chars[idx]}
         </div>
-        <div style={{ position: "absolute", right: 130, top: 330, width: 760 }}>
-          <Panel style={{ padding: "42px 46px" }}>
-            <div style={{ color: THEME.cyan, fontSize: 28, letterSpacing: 6, marginBottom: 16 }}>定义</div>
-            <div style={{ color: THEME.text, fontSize: 40, fontWeight: 800, lineHeight: 1.55 }}>
-              电流不经过用电器，<br />直接由导线构成回路
-            </div>
-            <div style={{ height: 26 }} />
-            <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-              <div style={{ color: THEME.sub, fontSize: 28 }}>结果：</div>
-              <div style={{ color: THEME.danger, fontSize: 38, fontWeight: 900, transform: `scale(${1 + grow * 0.12})` }}>
-                电阻极小 → 电流极大
+      </div>
+
+      {/* 小标签 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 200,
+          width: 1920,
+          textAlign: "center",
+          fontFamily: FONT2,
+          fontSize: 34,
+          letterSpacing: 22,
+          color: color,
+          opacity: 0.9 * exit,
+        }}
+      >
+        {tags[idx]}
+      </div>
+
+      {/* 飘浮配料 */}
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        {Array.from({ length: 10 }).map((_, i) => {
+          const t = f / 30 + i;
+          const x = rnd(i * 2.7) * 1920 + Math.sin(t * 0.7) * 40;
+          const y = ((rnd(i * 5.1) * 1200 + f * (0.5 + rnd(i) * 0.8)) % 1300) - 120;
+          return i % 2 ? (
+            <Chili key={i} x={x} y={y} s={0.55 + rnd(i * 3) * 0.5} rot={Math.sin(t) * 30} />
+          ) : (
+            <Scallion key={i} x={x} y={y} s={0.7} rot={Math.sin(t * 1.3) * 40} />
+          );
+        })}
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+/* ============================================================
+   场景 3：副歌大碗 + 节拍光环
+   ============================================================ */
+const SceneChorusBowl = () => {
+  const f = useCurrentFrame();
+  const hit = beatHit(f);
+  return (
+    <AbsoluteFill
+      style={{
+        background: `radial-gradient(ellipse at 50% 40%, #4a1226 0%, ${C.night} 70%)`,
+        opacity: interpolate(f, [0, 12, 568, 580], [0, 1, 1, 0], clampObj),
+        overflow: "hidden",
+      }}
+    >
+      <Sunburst />
+
+      {/* 节拍光环 */}
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        {Array.from({ length: 5 }).map((_, i) => {
+          const p = Math.pow(1 - ((((f + i * 3) % BEAT) + BEAT) % BEAT) / BEAT, 3);
+          return (
+            <circle
+              key={i}
+              cx={960}
+              cy={560}
+              r={330 + i * 130 + p * 55}
+              fill="none"
+              stroke={i % 2 ? "rgba(255,207,74,0.30)" : "rgba(226,49,70,0.30)"}
+              strokeWidth={3 + p * 5}
+              opacity={0.75 - i * 0.12}
+            />
+          );
+        })}
+      </svg>
+
+      {/* 大碗 + 蒸汽 */}
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        <ellipse cx="960" cy="880" rx="380" ry="46" fill="rgba(0,0,0,0.42)" />
+        <BowlGroup x={960} y={640} s={1.35 + hit * 0.05} lift={Math.sin(f / 9) * 12} />
+        {Array.from({ length: 6 }).map((_, i) => {
+          const t = (f * 1.4 + i * 70) % 320;
+          return (
+            <ellipse
+              key={i}
+              cx={760 + i * 82 + Math.sin(f / 20 + i) * 26}
+              cy={330 - t * 0.7}
+              rx={40 + (i % 3) * 12}
+              ry={22}
+              fill="rgba(255,255,255,0.12)"
+            />
+          );
+        })}
+      </svg>
+
+      {/* 招牌字 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 82,
+          width: 1920,
+          textAlign: "center",
+          fontFamily: FONT,
+          fontSize: 120,
+          color: C.gold,
+          letterSpacing: 26,
+          textShadow: `0 0 18px ${C.gold}, 0 0 60px rgba(255,207,74,0.6), 0 20px 50px rgba(0,0,0,0.5)`,
+          transform: `scale(${1 + hit * 0.03})`,
+        }}
+      >
+        大碗宽面
+      </div>
+
+      <Marquee text="热气腾腾　一碗入魂　Q弹爽滑　筋道过瘾" y={218} speed={2.2} color="rgba(255,207,74,0.85)" size={30} />
+      <Marquee text="BIG BOWL WIDE NOODLES　大碗宽面" y={986} speed={-2.6} color="rgba(226,49,70,0.9)" size={30} />
+    </AbsoluteFill>
+  );
+};
+
+/* ============================================================
+   场景 4：夜市长街（视差滚动）
+   ============================================================ */
+const SceneNight = () => {
+  const f = useCurrentFrame();
+  const layer = (speed) => -((((f * speed) % 1920) + 1920) % 1920);
+  return (
+    <AbsoluteFill
+      style={{
+        background: "linear-gradient(180deg,#0d0a24 0%, #2a1140 55%, #4a1a2c 100%)",
+        opacity: interpolate(f, [0, 12, 548, 560], [0, 1, 1, 0], clampObj),
+        overflow: "hidden",
+      }}
+    >
+      <Stars />
+      <div
+        style={{
+          position: "absolute",
+          left: 260,
+          top: 130,
+          width: 150,
+          height: 150,
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 35% 32%, #fff6d8, #f2c25e)",
+          boxShadow: "0 0 100px rgba(242,194,94,0.5)",
+        }}
+      />
+
+      {/* 远景天际线 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 520,
+          left: 0,
+          width: 3840,
+          height: 320,
+          transform: `translateX(${layer(0.6)}px)`,
+        }}
+      >
+        {Array.from({ length: 16 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: i * 240,
+              bottom: 0,
+              width: 150 + rnd(i) * 120,
+              height: 120 + rnd(i * 2.2) * 220,
+              background: "#1c1030",
+              borderRadius: "10px 10px 0 0",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 中景灯笼串 */}
+      <svg
+        width="3840"
+        height="1080"
+        style={{ position: "absolute", top: 0, left: 0, transform: `translateX(${layer(1.4)}px)` }}
+      >
+        <path
+          d="M 0 190 Q 480 300 960 190 T 1920 190 T 2880 190 T 3840 190"
+          fill="none"
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="5"
+        />
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Lantern key={i} x={190 + i * 390} y={250 + (i % 2) * 70} s={0.62} phase={i * 0.9} />
+        ))}
+      </svg>
+
+      {/* 近景摊位 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          width: 3840,
+          height: 430,
+          transform: `translateX(${layer(2.6)}px)`,
+        }}
+      >
+        {Array.from({ length: 8 }).map((_, i) => {
+          const words = ["宽面", "热汤", "夜市", "小摊"];
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: i * 500,
+                bottom: 0,
+                width: 430,
+                height: 330 + (i % 2) * 60,
+                background: "linear-gradient(180deg,#3c1b26,#251120)",
+                borderRadius: "18px 18px 0 0",
+                border: "3px solid rgba(255,207,74,0.28)",
+                borderBottom: "none",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  top: -52,
+                  left: 40,
+                  right: 40,
+                  height: 84,
+                  borderRadius: 14,
+                  background: i % 2 ? C.red : "#b8243a",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: FONT,
+                  fontSize: 44,
+                  color: C.gold2,
+                  letterSpacing: 10,
+                  boxShadow: "0 0 30px rgba(226,49,70,0.5)",
+                }}
+              >
+                {words[i % 4]}
               </div>
+              <div
+                style={{
+                  position: "absolute",
+                  left: 60,
+                  top: 110,
+                  width: 310,
+                  height: 150,
+                  borderRadius: 12,
+                  background:
+                    "radial-gradient(ellipse at 50% 80%, rgba(255,190,110,0.5), rgba(255,150,70,0.06))",
+                  border: "2px solid rgba(255,207,74,0.35)",
+                }}
+              />
             </div>
-          </Panel>
-        </div>
-        <Caption text="短路：电流不经过用电器，直接由导线构成回路。" delay={6} />
-        <Caption text="此时电阻极小，电流会瞬间变得非常大。" delay={120} />
-      </AbsoluteFill>
-    </SceneFade>
+          );
+        })}
+      </div>
+
+      {/* 标题 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 92,
+          width: 1920,
+          textAlign: "center",
+          fontFamily: FONT,
+          fontSize: 66,
+          color: C.cream,
+          letterSpacing: 18,
+          textShadow: "0 10px 40px rgba(0,0,0,0.65)",
+        }}
+      >
+        一条街 · 一碗面 · 一整晚
+      </div>
+    </AbsoluteFill>
   );
 };
 
-const SceneNormal = () => {
+/* ============================================================
+   场景 5：霓虹波浪 + 角落词卡
+   ============================================================ */
+const SceneWave = () => {
   const f = useCurrentFrame();
-  const isShort = f >= 150;
+  const hit = beatHit(f);
+  const words = ["Q弹", "爽滑", "筋道", "过瘾"];
   return (
-    <SceneFade>
-      <AbsoluteFill style={{ fontFamily: FONT }}>
-        <ActLabel num="02" title={isShort ? "对比：发生短路" : "对比：正常电路"} color={isShort ? THEME.danger : THEME.cyan} />
-        <div style={{ position: "absolute", top: 132, width: "100%", textAlign: "center" }}>
-          <Title text={isShort ? "同一条电路，突然失控" : "电流乖乖走完整条回路"} size={62} />
-        </div>
-        <div style={{ position: "absolute", left: 90, top: 240, width: 1120, height: 560 }}>
-          <CircuitDemo shorted={isShort} />
-        </div>
-        <Caption text="正常电路中，电流沿着导线流过小灯泡，灯泡正常发光。" delay={6} />
-        <Caption text="但只要接上一条“捷径”，一切就完全变了样……" delay={150} />
-      </AbsoluteFill>
-    </SceneFade>
+    <AbsoluteFill
+      style={{
+        background: "linear-gradient(180deg,#17092c 0%, #2b0f3f 55%, #0f0a22 100%)",
+        opacity: interpolate(f, [0, 12, 548, 560], [0, 1, 1, 0], clampObj),
+        overflow: "hidden",
+      }}
+    >
+      <CheckerFloor />
+      <div
+        style={{
+          position: "absolute",
+          top: 460,
+          left: 0,
+          right: 0,
+          height: 240,
+          background:
+            "linear-gradient(180deg, rgba(255,207,74,0), rgba(255,90,60,0.32), rgba(255,207,74,0))",
+        }}
+      />
+      <WaveBG />
+
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        <ellipse cx="960" cy="870" rx="330" ry="42" fill="rgba(0,0,0,0.5)" />
+        <BowlGroup x={960} y={620} s={1.15 + hit * 0.08} lift={Math.sin(f / 7) * 14} />
+      </svg>
+
+      {words.map((w, i) => {
+        const on = Math.floor(f / 60) % 4 === i;
+        const s = spring({ frame: f % 60, config: { damping: 10, stiffness: 160 }, durationInFrames: 26 });
+        const pos = [
+          { left: 120, top: 170 },
+          { right: 120, top: 170 },
+          { left: 120, bottom: 170 },
+          { right: 120, bottom: 170 },
+        ][i];
+        return (
+          <div
+            key={w}
+            style={{
+              position: "absolute",
+              ...pos,
+              opacity: on ? 1 : 0.12,
+              transform: `scale(${on ? 0.7 + s * 0.4 : 0.8}) rotate(${i % 2 ? 4 : -4}deg)`,
+              fontFamily: FONT,
+              fontSize: 120,
+              color: [C.gold, C.red2, C.jade, C.magenta][i],
+              textShadow: "0 18px 50px rgba(0,0,0,0.55)",
+            }}
+          >
+            {w}
+          </div>
+        );
+      })}
+    </AbsoluteFill>
   );
 };
 
-// =========修复 SceneFormula spring补fps=========
-const SceneFormula = () => {
+/* ============================================================
+   场景 6：结尾致谢
+   ============================================================ */
+const SceneOutro = () => {
   const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const enter = (d) => spring({ frame: f - d, fps, config: { damping: 13, stiffness: 120 } });
+  const seal = f < 150 ? 0 : spring({ frame: f - 150, config: { damping: 9, stiffness: 120 }, durationInFrames: 32 });
   return (
-    <SceneFade>
-      <AbsoluteFill style={{ fontFamily: FONT }}>
-        <ActLabel num="03" title="原理：欧姆定律" color={THEME.amber} />
-        <div style={{ position: "absolute", top: 150, width: "100%", textAlign: "center" }}>
-          <Title text="为什么会这样？看看这个公式" size={72} />
+    <AbsoluteFill
+      style={{
+        background: `linear-gradient(180deg, ${C.night} 0%, #2c1024 60%, #120a1c 100%)`,
+        opacity: interpolate(f, [0, 12], [0, 1], clampObj),
+        overflow: "hidden",
+      }}
+    >
+      <Stars />
+      <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
+        <Lantern x={330} y={330} s={0.85} phase={0.4} />
+        <Lantern x={1590} y={330} s={0.85} phase={2.1} />
+      </svg>
+
+      <NeonRow top={140} />
+
+      {/* 蒸汽帘幕 */}
+      {Array.from({ length: 9 }).map((_, i) => {
+        const t = (f * 1.2 + i * 90) % 460;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: 90 + i * 210,
+              top: 1080 - t,
+              width: 220,
+              height: 120,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.07)",
+              filter: "blur(12px)",
+            }}
+          />
+        );
+      })}
+
+      {/* 谢谢款待 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 400,
+          width: 1920,
+          textAlign: "center",
+          fontFamily: FONT,
+          fontSize: 150,
+          color: C.cream,
+          letterSpacing: 30,
+          textShadow: "0 0 30px rgba(255,207,74,0.45), 0 22px 60px rgba(0,0,0,0.55)",
+          opacity: interpolate(f, [70, 110], [0, 1], clampObj),
+          transform: `translateY(${interpolate(f, [70, 110], [40, 0], clampObj)}px)`,
+        }}
+      >
+        谢谢款待
+      </div>
+
+      {/* 印章 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 620,
+          left: 830,
+          width: 260,
+          height: 260,
+          borderRadius: 24,
+          border: `10px solid ${C.red}`,
+          color: C.red,
+          fontFamily: FONT,
+          fontSize: 108,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          letterSpacing: 8,
+          transform: `rotate(-12deg) scale(${seal})`,
+          opacity: interpolate(f, [150, 165], [0, 1], clampObj),
+          boxShadow: "0 0 60px rgba(226,49,70,0.4)",
+          background: "rgba(226,49,70,0.08)",
+        }}
+      >
+        完
+      </div>
+
+      {/* 结尾信息 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 150,
+          width: 1920,
+          textAlign: "center",
+          opacity: interpolate(f, [230, 270], [0, 1], clampObj),
+        }}
+      >
+        <div style={{ fontFamily: FONT2, fontSize: 34, color: C.gold2, letterSpacing: 14 }}>THE END</div>
+        <div
+          style={{
+            marginTop: 16,
+            fontFamily: FONT2,
+            fontSize: 24,
+            color: "rgba(255,243,226,0.6)",
+            letterSpacing: 6,
+          }}
+        >
+          大碗宽面 · 2D MV 概念样片 · MADE WITH REMOTION
         </div>
-        <div style={{ position: "absolute", top: 320, width: "100%", display: "flex", justifyContent: "center", gap: 70 }}>
-          <Panel style={{ padding: "50px 66px", textAlign: "center", opacity: enter(6), transform: `translateY(${(1 - enter(6)) * 40}px)` }}>
-            <div style={{ color: THEME.sub, fontSize: 26, letterSpacing: 8, marginBottom: 26 }}>欧姆定律</div>
-            <div style={{ fontSize: 110, fontWeight: 900, color: THEME.text, fontFamily: MONO }}>
-              I = <span style={{ color: THEME.cyan }}>U</span> / <span style={{ color: THEME.amber }}>R</span>
-            </div>
-            <div style={{ marginTop: 26, color: THEME.sub, fontSize: 28 }}>
-              <span style={{ color: THEME.cyan }}>电压 U</span> 一定（220 V）<br />
-              <span style={{ color: THEME.amber }}>电阻 R</span> 越小 → <span style={{ color: THEME.danger }}>电流 I</span> 越大
-            </div>
-          </Panel>
-        </div>
-        <Caption text="电压一定时，电阻越小，电流越大。" delay={6} />
-        <Caption text="短路让电阻几乎为零，电流瞬间暴增！" delay={128} />
-      </AbsoluteFill>
-    </SceneFade>
+      </div>
+    </AbsoluteFill>
   );
 };
 
-// =========修复 SceneDanger spring补fps=========
-const SceneDanger = () => {
-  const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const cards = [
-    { icon: "🔥", title: "烧毁绝缘层", desc: "高温让导线外皮熔化、起火" },
-    { icon: "⚡", title: "烧坏电源", desc: "大电流瞬间损坏电池 / 变压器" },
-    { icon: "💥", title: "引发火灾", desc: "电气火灾往往只在几秒之间" },
-    { icon: "⚠", title: "触电危险", desc: "绝缘失效，人可能直接触电" },
-  ];
-  return (
-    <SceneFade>
-      <AbsoluteFill style={{ fontFamily: FONT }}>
-        <ActLabel num="04" title="短路有多危险" color={THEME.danger} />
-        <div style={{ position: "absolute", top: 140, width: "100%", textAlign: "center" }}>
-          <Title text="大电流 = 高温 + 火灾" size={76} />
-        </div>
-        <div style={{ position: "absolute", right: 110, top: 290, width: 800, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26 }}>
-          {cards.map((c, i) => {
-            const t = spring({ frame: f - 24 - i * 12, fps, config: { damping: 13, stiffness: 120 } });
-            return (
-              <Panel key={c.title} style={{ padding: "30px 32px", opacity: t, transform: `translateY(${(1 - t) * 46}px)` }}>
-                <div style={{ fontSize: 52 }}>{c.icon}</div>
-                <div style={{ color: THEME.text, fontSize: 32, fontWeight: 800, marginTop: 12 }}>{c.title}</div>
-                <div style={{ color: THEME.sub, fontSize: 24, marginTop: 10 }}>{c.desc}</div>
-              </Panel>
-            );
-          })}
-        </div>
-        <Caption text="大电流产生大量热量，烧毁绝缘层，甚至引发火灾。" delay={6} />
-        <Caption text="短路，是家庭电路起火最常见的原因之一。" delay={140} />
-      </AbsoluteFill>
-    </SceneFade>
-  );
-};
-
-// =========修复 ScenePrevent spring补fps=========
-const ScenePrevent = () => {
-  const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const tips = [
-    { n: "01", t: "别让导线直接相连", d: "火线与零线、正负极绝不能直接碰在一起" },
-    { n: "02", t: "安装保险装置", d: "保险丝 / 空气开关，电流过大时自动断电" },
-    { n: "03", t: "避免一个插座接太多电器", d: "防止过载发热，诱发短路" },
-    { n: "04", t: "定期检查电线与电器", d: "破损、老化的导线要及时更换" },
-  ];
-  return (
-    <SceneFade>
-      <AbsoluteFill style={{ fontFamily: FONT }}>
-        <ActLabel num="05" title="如何避免短路" color={THEME.good} />
-        <div style={{ position: "absolute", top: 148, width: "100%", textAlign: "center" }}>
-          <Title text="记住这 4 招，远离短路" size={74} />
-        </div>
-        <div style={{ position: "absolute", top: 340, left: 130, right: 130, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 28 }}>
-          {tips.map((tip, i) => {
-            const t = spring({ frame: f - 20 - i * 13, fps, config: { damping: 13, stiffness: 115 } });
-            return (
-              <Panel key={tip.n} style={{ padding: "38px 32px", opacity: t, transform: `translateY(${(1 - t) * 56}px)`, textAlign: "center", borderTop: `4px solid ${THEME.good}` }}>
-                <div style={{ width: 76, height: 76, borderRadius: "50%", margin: "0 auto", background: "rgba(63,227,161,0.14)", border: `2px solid ${THEME.good}`, color: THEME.good, fontSize: 32, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
-                  {tip.n}
-                </div>
-                <div style={{ color: THEME.text, fontSize: 31, fontWeight: 800, marginTop: 22 }}>{tip.t}</div>
-                <div style={{ color: THEME.sub, fontSize: 23, marginTop: 14 }}>{tip.d}</div>
-              </Panel>
-            );
-          })}
-        </div>
-        <Caption text="不乱接导线、装好保险丝、不超负荷用电。" delay={6} />
-        <Caption text="看懂原理，规范用电，短路就能被我们挡在门外。" delay={150} />
-      </AbsoluteFill>
-    </SceneFade>
-  );
-};
-
-const ShortCircuitVideo = () => {
+/* ============================================================
+   主合成
+   ============================================================ */
+const DaWanKuanMianMV = () => {
   const frame = useCurrentFrame();
-  const S = (s) => Math.round(s * 30);
+
+  /* 字体加载完成后再截帧 */
+  const [handle] = React.useState(() => delayRender("load-fonts"));
+  React.useEffect(() => {
+    let done = false;
+    const finish = () => {
+      if (!done) {
+        done = true;
+        continueRender(handle);
+      }
+    };
+    if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(finish).catch(finish);
+    } else {
+      finish();
+    }
+    const timer = setTimeout(finish, 5000);
+    return () => clearTimeout(timer);
+  }, [handle]);
+
+  const hit = beatHit(frame);
+
   return (
-    <AbsoluteFill style={{ background: THEME.bg, fontFamily: FONT }}>
-      <Backdrop />
-      <Sequence from={0} durationInFrames={S(6)} premountFor={30}><SceneHook /></Sequence>
-      <Sequence from={S(6)} durationInFrames={S(5)} premountFor={30}><SceneWhat /></Sequence>
-      <Sequence from={S(11)} durationInFrames={S(5)} premountFor={30}><SceneNormal /></Sequence>
-      <Sequence from={S(16)} durationInFrames={S(5)} premountFor={30}><SceneFormula /></Sequence>
-      <Sequence from={S(21)} durationInFrames={S(5)} premountFor={30}><SceneDanger /></Sequence>
-      <Sequence from={S(26)} durationInFrames={S(7.8)} premountFor={30}><ScenePrevent /></Sequence>
+    <AbsoluteFill style={{ background: C.night }}>
+      {TRACK ? <Audio src={TRACK} /> : null}
+
+      {/* 轻微的节拍呼吸镜头 */}
+      <AbsoluteFill style={{ transform: `scale(${1 + hit * 0.006})` }}>
+        <Sequence from={0} durationInFrames={380}>
+          <SceneIntro />
+        </Sequence>
+        <Sequence from={360} durationInFrames={440}>
+          <SceneKinetic />
+        </Sequence>
+        <Sequence from={780} durationInFrames={580}>
+          <SceneChorusBowl />
+        </Sequence>
+        <Sequence from={1340} durationInFrames={560}>
+          <SceneNight />
+        </Sequence>
+        <Sequence from={1880} durationInFrames={560}>
+          <SceneWave />
+        </Sequence>
+        <Sequence from={2420} durationInFrames={580}>
+          <SceneOutro />
+        </Sequence>
+      </AbsoluteFill>
+
+      {/* 暗角 */}
+      <AbsoluteFill
+        style={{
+          pointerEvents: "none",
+          background: "radial-gradient(ellipse at center, transparent 55%, rgba(10,4,18,0.55) 100%)",
+        }}
+      />
+      {/* 颗粒质感 */}
+      <AbsoluteFill
+        style={{
+          pointerEvents: "none",
+          opacity: 0.05,
+          backgroundImage:
+            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/></filter><rect width=\'160\' height=\'160\' filter=\'url(%23n)\' opacity=\'0.7\'/></svg>")',
+          backgroundSize: "240px 240px",
+        }}
+      />
+      {/* 结尾淡出 */}
       <AbsoluteFill
         style={{
           background: "#000",
-          opacity: interpolate(frame, [VIDEO_CONFIG.durationInFrames - 26, VIDEO_CONFIG.durationInFrames - 2], [0, 1], clamp),
-          pointerEvents: "none",
+          opacity: interpolate(frame, [2946, 2998], [0, 1], clampObj),
         }}
       />
     </AbsoluteFill>
   );
 };
 
-const RemotionRoot = () => {
-  return (
-    <>
-      <Composition
-        id="ShortCircuitVideo"
-        component={ShortCircuitVideo}
-        width={VIDEO_CONFIG.width}
-        height={VIDEO_CONFIG.height}
-        fps={VIDEO_CONFIG.fps}
-        durationInFrames={VIDEO_CONFIG.durationInFrames}
-      />
-    </>
-  );
-};
+export const RemotionRoot = () => (
+  <Composition
+    id="ShortCircuitVideo"
+    component={DaWanKuanMianMV}
+    durationInFrames={3000}
+    fps={30}
+    width={1920}
+    height={1080}
+  />
+);
 
 registerRoot(RemotionRoot);
