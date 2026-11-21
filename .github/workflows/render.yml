@@ -14,10 +14,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # 删掉 cache: npm！！不开启缓存，就不会去找lock文件
 
       - name: Install dependencies
-        run: npm install # 这里替换了npm ci！
+        run: npm install
 
       - name: Render video
         run: npx remotion render src/Root.jsx ShortCircuitVideo out/video.mp4 --codec h264
