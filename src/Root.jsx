@@ -1,7 +1,6 @@
 import React from "react";
 import {
   AbsoluteFill,
-  Audio,
   Sequence,
   interpolate,
   spring,
@@ -9,15 +8,6 @@ import {
   useVideoConfig,
   registerRoot,
 } from "remotion";
-import {
-  sndAlarm,
-  sndClick,
-  sndBoom,
-  sndHum,
-  sndPop,
-  sndRiser,
-  sndSpark,
-} from "./sounds";
 
 /* ============================================================
    全局配置 / 主题
@@ -1153,49 +1143,28 @@ const ScenePrevent = () => {
 };
 
 /* ============================================================
-   主合成：时间轴 + 音效
+   主合成：时间轴
    ============================================================ */
 const ShortCircuitVideo = () => {
   const frame = useCurrentFrame();
   const S = (s) => Math.round(s * 30);
-  const tSpark = S(1.55);
-  const tAlarm = S(2.1);
-  const tRiser = S(5.2);
-  const tPop2 = S(6.2);
-  const tClick = S(11.15);
-  const tShort = S(16.15);
-  const tSpark2 = S(16.4);
-  const tAlarm2 = S(16.9);
-  const tPop4 = S(21.4);
-  const tBoom = S(26.05);
   return (
     <AbsoluteFill style={{ background: THEME.bg, fontFamily: FONT }}>
       <Backdrop />
       <Sequence from={0} durationInFrames={S(6)} premountFor={30}>
         <SceneHook />
-        <Audio src={sndHum} volume={0.14} />
-        <Audio src={sndSpark} startFrom={tSpark} volume={0.9} />
-        <Audio src={sndAlarm} startFrom={tAlarm} volume={0.75} />
-        <Audio src={sndRiser} startFrom={tRiser} volume={0.55} />
       </Sequence>
       <Sequence from={S(6)} durationInFrames={S(5)} premountFor={30}>
         <SceneWhat />
-        <Audio src={sndPop} startFrom={tPop2} volume={0.7} />
       </Sequence>
       <Sequence from={S(11)} durationInFrames={S(5)} premountFor={30}>
         <SceneNormal />
-        <Audio src={sndClick} startFrom={tClick} volume={0.85} />
-        <Audio src={sndSpark} startFrom={tShort} volume={0.9} />
-        <Audio src={sndSpark} startFrom={tSpark2} volume={0.7} />
-        <Audio src={sndAlarm} startFrom={tAlarm2} volume={0.6} />
       </Sequence>
       <Sequence from={S(16)} durationInFrames={S(5)} premountFor={30}>
         <SceneFormula />
-        <Audio src={sndPop} startFrom={tPop4} volume={0.7} />
       </Sequence>
       <Sequence from={S(21)} durationInFrames={S(5)} premountFor={30}>
         <SceneDanger />
-        <Audio src={sndBoom} startFrom={tBoom} volume={0.85} />
       </Sequence>
       <Sequence from={S(26)} durationInFrames={S(7.8)} premountFor={30}>
         <ScenePrevent />
