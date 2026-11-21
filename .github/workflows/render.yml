@@ -1,6 +1,6 @@
 name: Render Video
 on:
-  workflow_dispatch: # 手动触发（推荐，不会自动跑扣时长）
+  workflow_dispatch:
 jobs:
   render:
     name: Render
@@ -17,7 +17,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install # 这里替换了npm ci！
 
       - name: Render video
         run: npx remotion render src/Root.jsx ShortCircuitVideo out/video.mp4 --codec h264
