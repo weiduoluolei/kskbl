@@ -1,5 +1,5 @@
 // ============================================================
-// 《大碗宽面》2D MV — 单文件版
+// 《大碗宽面》2D MV — 单文件版（已修复 spring fps 问题）
 // 位置：src/Root.jsx
 // 合成 id：ShortCircuitVideo（与 .github/workflows/render.yml 对应）
 // 音轨：程序化生成的原创 120BPM 节拍（自动内嵌）
@@ -14,13 +14,16 @@ import {
   Composition,
   Sequence,
   interpolate,
-  spring,
+  spring as _spring,
   staticFile,
   useCurrentFrame,
   registerRoot,
   delayRender,
   continueRender,
 } from "remotion";
+
+/* ---------- 修复：spring 需要 fps 参数 ---------- */
+const spring = (opts) => _spring({ fps: 30, ...opts });
 
 /* ---------- 字体（Google Fonts + 系统 Noto CJK 兜底） ---------- */
 if (typeof document !== "undefined" && !document.getElementById("mv-font-style")) {
@@ -34,7 +37,7 @@ if (typeof document !== "undefined" && !document.getElementById("mv-font-style")
 const FONT = '"ZCOOL KuaiLe","Noto Sans SC","Noto Sans CJK SC",sans-serif';
 const FONT2 = '"Noto Sans SC","Noto Sans CJK SC",sans-serif';
 
-/* ---------- 主题色：夜市霓虹（暗夜紫黑 + 霓虹红金 + 翡翠绿） ---------- */
+/* ---------- 主题色 ---------- */
 const C = {
   night: "#0e0821",
   night2: "#241041",
@@ -54,7 +57,7 @@ const clampObj = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
 const BEAT = 15;
 const beatHit = (f) => Math.pow(1 - ((f % BEAT) + BEAT) % BEAT / BEAT, 3);
 
-/* ---------- 确定性随机 / 噪声 ---------- */
+/* ---------- 确定性随机 ---------- */
 const nz = (i) => {
   const x = Math.sin(i * 12.9898) * 43758.5453;
   return (x - Math.floor(x)) * 2 - 1;
@@ -79,7 +82,6 @@ function buildTrack() {
     for (let i = s0; i < s1; i++) buf[i] += fn((i - s0) / sr, i);
   };
 
-  /* 乐器 */
   const kick = (t) => Math.sin(2 * Math.PI * 52 * t + 6.5 * Math.exp(-t * 17)) * Math.exp(-t * 7.5);
   const clap = (t, i) => nz(i) * (Math.exp(-t * 24) + 0.5 * Math.exp(-t * 8)) * 0.5;
   const hat = (t, i, v) =>
@@ -98,7 +100,6 @@ function buildTrack() {
     Math.min(1, (dur - t) / 1.2) *
     0.16;
 
-  /* A 五声音阶旋律（A C D E G），4 小节循环 */
   const MEL = [
     [440, 0, 523.25, 587.33, 0, 659.25, 587.33, 523.25],
     [440, 0, 392, 440, 0, 523.25, 0, 440],
@@ -106,7 +107,7 @@ function buildTrack() {
     [523.25, 0, 440, 392, 0, 440, 0, 0],
   ];
   const ROOTS = [110, 98, 130.81, 98];
-  const BAR = 2; // 2 秒/小节
+  const BAR = 2;
 
   for (let bar = 0; bar < 50; bar++) {
     const t0 = bar * BAR;
@@ -153,7 +154,6 @@ function buildTrack() {
     if (bar % 2 === 0) add(t0, 4, pad(root * 2, 4));
   }
 
-  /* 淡入淡出 + 归一化 */
   for (let i = 0; i < n; i++) {
     const t = i / sr;
     if (t < 0.6) buf[i] *= t / 0.6;
@@ -163,7 +163,6 @@ function buildTrack() {
   for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(buf[i]));
   const g = peak > 0 ? 0.86 / peak : 1;
 
-  /* WAV 编码（16bit 单声道） */
   const bytes = new Uint8Array(44 + n * 2);
   const dv = new DataView(bytes.buffer);
   const wStr = (o, s) => {
@@ -201,7 +200,6 @@ const TRACK = typeof window !== "undefined" ? buildTrack() : "";
 /* ============================================================
    通用小组件
    ============================================================ */
-
 const Stars = () => {
   const f = useCurrentFrame();
   return (
@@ -283,17 +281,8 @@ const Lantern = ({ x, y, s, phase, glow }) => {
 
 const Chili = ({ x, y, s, rot }) => (
   <g transform={`translate(${x},${y}) rotate(${rot}) scale(${s})`}>
-    <path
-      d="M 0 0 C 26 12, 32 52, 8 76 C -12 92, -36 84, -30 64 C -24 44, -8 40, 0 22 Z"
-      fill="#e0233a"
-    />
-    <path
-      d="M -6 -8 C 6 -22, 24 -16, 22 -2"
-      fill="none"
-      stroke="#2f9e5c"
-      strokeWidth="9"
-      strokeLinecap="round"
-    />
+    <path d="M 0 0 C 26 12, 32 52, 8 76 C -12 92, -36 84, -30 64 C -24 44, -8 40, 0 22 Z" fill="#e0233a" />
+    <path d="M -6 -8 C 6 -22, 24 -16, 22 -2" fill="none" stroke="#2f9e5c" strokeWidth="9" strokeLinecap="round" />
   </g>
 );
 
@@ -382,25 +371,8 @@ const Marquee = ({ text, y, speed, color, size }) => {
   const unit = text.length * (size * 0.95 + 26);
   const x = -((((f * speed) % unit) + unit) % unit);
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: y,
-        left: 0,
-        width: 1920,
-        overflow: "hidden",
-        whiteSpace: "nowrap",
-      }}
-    >
-      <div
-        style={{
-          transform: `translateX(${x}px)`,
-          fontFamily: FONT,
-          fontSize: size,
-          color: color,
-          letterSpacing: 12,
-        }}
-      >
+    <div style={{ position: "absolute", top: y, left: 0, width: 1920, overflow: "hidden", whiteSpace: "nowrap" }}>
+      <div style={{ transform: `translateX(${x}px)`, fontFamily: FONT, fontSize: size, color: color, letterSpacing: 12 }}>
         {Array.from({ length: 8 }).map((_, i) => (
           <span key={i}>{text}　·　</span>
         ))}
@@ -413,26 +385,11 @@ const BowlGroup = ({ x, y, s, lift }) => {
   const f = useCurrentFrame();
   return (
     <g transform={`translate(${x},${y}) scale(${s})`}>
-      {/* 碗身 */}
       <path d="M -250 -30 C -240 140, -130 215, 0 215 C 130 215, 240 140, 250 -30 Z" fill="#c9302f" />
-      <path
-        d="M -250 -30 C -240 140, -130 215, 0 215 C 130 215, 240 140, 250 -30 Z"
-        fill="none"
-        stroke="#ff6a5c"
-        strokeWidth="5"
-        opacity="0.5"
-      />
-      <path
-        d="M -210 62 C -120 122, 120 122, 210 62"
-        fill="none"
-        stroke="#e9b53c"
-        strokeWidth="12"
-        opacity="0.85"
-        strokeDasharray="34 22"
-      />
+      <path d="M -250 -30 C -240 140, -130 215, 0 215 C 130 215, 240 140, 250 -30 Z" fill="none" stroke="#ff6a5c" strokeWidth="5" opacity="0.5" />
+      <path d="M -210 62 C -120 122, 120 122, 210 62" fill="none" stroke="#e9b53c" strokeWidth="12" opacity="0.85" strokeDasharray="34 22" />
       <ellipse cx="0" cy="-30" rx="250" ry="52" fill="#8e1f28" />
       <ellipse cx="0" cy="-36" rx="222" ry="42" fill="#a3441c" />
-      {/* 面条堆 */}
       {Array.from({ length: 8 }).map((_, i) => {
         const yy = -72 + i * 13;
         const amp = 14 + (i % 3) * 9;
@@ -447,32 +404,18 @@ const BowlGroup = ({ x, y, s, lift }) => {
           />
         );
       })}
-      {/* 筷子 */}
       <g transform="translate(150,-252) rotate(18)">
         <rect x="-8" y="-10" width="16" height="232" rx="8" fill="#caa06a" />
         <rect x="18" y="-10" width="16" height="232" rx="8" fill="#b98d54" />
       </g>
-      {/* 提起的面条 */}
-      <path
-        d={`M 122 -232 C 62 ${-172 + Math.sin(f / 8) * 16 + lift}, 22 -122, -28 -86`}
-        fill="none"
-        stroke="#f7e0a4"
-        strokeWidth="11"
-        strokeLinecap="round"
-      />
-      <path
-        d={`M 134 -234 C 76 ${-164 + Math.sin(f / 8 + 1) * 16 + lift}, 32 -112, -10 -78`}
-        fill="none"
-        stroke="#eed08c"
-        strokeWidth="9"
-        strokeLinecap="round"
-      />
+      <path d={`M 122 -232 C 62 ${-172 + Math.sin(f / 8) * 16 + lift}, 22 -122, -28 -86`} fill="none" stroke="#f7e0a4" strokeWidth="11" strokeLinecap="round" />
+      <path d={`M 134 -234 C 76 ${-164 + Math.sin(f / 8 + 1) * 16 + lift}, 32 -112, -10 -78`} fill="none" stroke="#eed08c" strokeWidth="9" strokeLinecap="round" />
     </g>
   );
 };
 
 /* ============================================================
-   场景 1：霓虹开场（钩子）
+   场景 1：霓虹开场
    ============================================================ */
 const SceneIntro = () => {
   const f = useCurrentFrame();
@@ -487,62 +430,11 @@ const SceneIntro = () => {
       }}
     >
       <Stars />
-      {/* 月亮 */}
-      <div
-        style={{
-          position: "absolute",
-          right: 200,
-          top: 120,
-          width: 170,
-          height: 170,
-          borderRadius: "50%",
-          background: "radial-gradient(circle at 35% 32%, #fff6d8, #f2c25e)",
-          boxShadow: "0 0 110px rgba(242,194,94,0.5)",
-        }}
-      />
+      <div style={{ position: "absolute", right: 200, top: 120, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle at 35% 32%, #fff6d8, #f2c25e)", boxShadow: "0 0 110px rgba(242,194,94,0.5)" }} />
 
-      {/* 店面 */}
-      <div
-        style={{
-          position: "absolute",
-          left: 300,
-          top: 250,
-          width: 1320,
-          height: 660,
-          background: "linear-gradient(180deg,#31162a,#22101f)",
-          borderRadius: 26,
-          border: "3px solid rgba(255,207,74,0.35)",
-          boxShadow: "0 50px 120px rgba(0,0,0,0.55)",
-        }}
-      >
-        {/* 遮阳棚 */}
-        <div
-          style={{
-            position: "absolute",
-            top: -36,
-            left: -18,
-            right: -18,
-            height: 96,
-            borderRadius: 18,
-            background: `repeating-linear-gradient(90deg, ${C.red} 0 90px, ${C.cream} 90px 180px)`,
-            boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
-          }}
-        />
-        {/* 橱窗 */}
-        <div
-          style={{
-            position: "absolute",
-            left: 90,
-            top: 150,
-            right: 90,
-            bottom: 90,
-            borderRadius: 20,
-            background:
-              "radial-gradient(ellipse at 50% 70%, rgba(255,190,110,0.55), rgba(255,140,60,0.12) 65%, rgba(255,140,60,0.04))",
-            border: "3px solid rgba(255,207,74,0.5)",
-            overflow: "hidden",
-          }}
-        >
+      <div style={{ position: "absolute", left: 300, top: 250, width: 1320, height: 660, background: "linear-gradient(180deg,#31162a,#22101f)", borderRadius: 26, border: "3px solid rgba(255,207,74,0.35)", boxShadow: "0 50px 120px rgba(0,0,0,0.55)" }}>
+        <div style={{ position: "absolute", top: -36, left: -18, right: -18, height: 96, borderRadius: 18, background: `repeating-linear-gradient(90deg, ${C.red} 0 90px, ${C.cream} 90px 180px)`, boxShadow: "0 16px 40px rgba(0,0,0,0.45)" }} />
+        <div style={{ position: "absolute", left: 90, top: 150, right: 90, bottom: 90, borderRadius: 20, background: "radial-gradient(ellipse at 50% 70%, rgba(255,190,110,0.55), rgba(255,140,60,0.12) 65%, rgba(255,140,60,0.04))", border: "3px solid rgba(255,207,74,0.5)", overflow: "hidden" }}>
           <svg width="100%" height="100%" viewBox="0 0 1140 420" preserveAspectRatio="xMidYMid slice">
             <rect x="0" y="320" width="1140" height="100" fill="#4b2417" />
             <ellipse cx="330" cy="320" rx="90" ry="24" fill="#e0d3b2" />
@@ -550,67 +442,26 @@ const SceneIntro = () => {
             <ellipse cx="700" cy="332" rx="120" ry="28" fill="#d9c9a2" />
             <path d="M 580 332 C 595 404, 805 404, 820 332 Z" fill="#efe4c6" />
             {[0, 1, 2].map((i) => (
-              <ellipse
-                key={i}
-                cx={330 + i * 22}
-                cy={230 - ((f * 1.1 + i * 40) % 170)}
-                rx={26 + i * 6}
-                ry={16}
-                fill="rgba(255,255,255,0.16)"
-              />
+              <ellipse key={i} cx={330 + i * 22} cy={230 - ((f * 1.1 + i * 40) % 170)} rx={26 + i * 6} ry={16} fill="rgba(255,255,255,0.16)" />
             ))}
           </svg>
         </div>
       </div>
 
-      {/* 霓虹招牌 */}
       <NeonRow top={112} />
-      <div
-        style={{
-          position: "absolute",
-          top: 352,
-          width: 1920,
-          textAlign: "center",
-          fontFamily: FONT2,
-          fontSize: 30,
-          letterSpacing: 16,
-          color: C.gold2,
-          opacity: interpolate(f, [80, 110], [0, 0.9], clampObj),
-          textShadow: `0 0 18px ${C.gold}`,
-        }}
-      >
+      <div style={{ position: "absolute", top: 352, width: 1920, textAlign: "center", fontFamily: FONT2, fontSize: 30, letterSpacing: 16, color: C.gold2, opacity: interpolate(f, [80, 110], [0, 0.9], clampObj), textShadow: `0 0 18px ${C.gold}` }}>
         BIG BOWL WIDE NOODLES
       </div>
 
-      {/* 底部文案 */}
       <div style={{ position: "absolute", bottom: 118, width: 1920, textAlign: "center" }}>
-        <div
-          style={{
-            fontFamily: FONT,
-            fontSize: 58,
-            color: C.cream,
-            letterSpacing: 10,
-            opacity: interpolate(f, [130, 170], [0, 1], clampObj),
-            textShadow: "0 8px 30px rgba(0,0,0,0.6)",
-          }}
-        >
+        <div style={{ fontFamily: FONT, fontSize: 58, color: C.cream, letterSpacing: 10, opacity: interpolate(f, [130, 170], [0, 1], clampObj), textShadow: "0 8px 30px rgba(0,0,0,0.6)" }}>
           夜市 · 一碗热气腾腾的宽面
         </div>
-        <div
-          style={{
-            marginTop: 18,
-            fontFamily: FONT2,
-            fontSize: 26,
-            color: "rgba(255,243,226,0.62)",
-            letterSpacing: 8,
-            opacity: interpolate(f, [170, 205], [0, 1], clampObj),
-          }}
-        >
+        <div style={{ marginTop: 18, fontFamily: FONT2, fontSize: 26, color: "rgba(255,243,226,0.62)", letterSpacing: 8, opacity: interpolate(f, [170, 205], [0, 1], clampObj) }}>
           2D MV 概念样片 · MADE WITH REMOTION
         </div>
       </div>
 
-      {/* 灯笼 */}
       <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
         <Lantern x={210} y={300} s={0.9} phase={0} />
         <Lantern x={1710} y={310} s={0.9} phase={1.6} />
@@ -635,78 +486,26 @@ const SceneKinetic = () => {
   const exit = interpolate(lf, [seg - 16, seg], [1, 0], clampObj);
 
   return (
-    <AbsoluteFill
-      style={{
-        background: C.night,
-        opacity: interpolate(f, [0, 12, 428, 440], [0, 1, 1, 0], clampObj),
-        overflow: "hidden",
-      }}
-    >
+    <AbsoluteFill style={{ background: C.night, opacity: interpolate(f, [0, 12, 428, 440], [0, 1, 1, 0], clampObj), overflow: "hidden" }}>
       {idx === 0 ? <Sunburst /> : null}
       {idx === 1 ? <CheckerFloor /> : null}
       {idx === 2 ? <StripeBG /> : null}
       {idx === 3 ? <WaveBG /> : null}
 
-      {/* 英文水印 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 320,
-          width: 1920,
-          textAlign: "center",
-          fontFamily: FONT2,
-          fontSize: 250,
-          fontWeight: 900,
-          color: "transparent",
-          WebkitTextStroke: "3px rgba(255,255,255,0.10)",
-          letterSpacing: 30,
-        }}
-      >
+      <div style={{ position: "absolute", top: 320, width: 1920, textAlign: "center", fontFamily: FONT2, fontSize: 250, fontWeight: 900, color: "transparent", WebkitTextStroke: "3px rgba(255,255,255,0.10)", letterSpacing: 30 }}>
         {tags[idx]}
       </div>
 
-      {/* 主字 */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: FONT,
-            fontSize: 430,
-            color: color,
-            opacity: exit,
-            transform: `scale(${0.35 + s * 0.75}) rotate(${(1 - s) * -10}deg)`,
-            textShadow: `0 0 40px ${color}, 0 26px 60px rgba(0,0,0,0.55)`,
-          }}
-        >
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: FONT, fontSize: 430, color: color, opacity: exit, transform: `scale(${0.35 + s * 0.75}) rotate(${(1 - s) * -10}deg)`, textShadow: `0 0 40px ${color}, 0 26px 60px rgba(0,0,0,0.55)` }}>
           {chars[idx]}
         </div>
       </div>
 
-      {/* 小标签 */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 200,
-          width: 1920,
-          textAlign: "center",
-          fontFamily: FONT2,
-          fontSize: 34,
-          letterSpacing: 22,
-          color: color,
-          opacity: 0.9 * exit,
-        }}
-      >
+      <div style={{ position: "absolute", bottom: 200, width: 1920, textAlign: "center", fontFamily: FONT2, fontSize: 34, letterSpacing: 22, color: color, opacity: 0.9 * exit }}>
         {tags[idx]}
       </div>
 
-      {/* 飘浮配料 */}
       <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
         {Array.from({ length: 10 }).map((_, i) => {
           const t = f / 30 + i;
@@ -724,7 +523,7 @@ const SceneKinetic = () => {
 };
 
 /* ============================================================
-   场景 3：副歌大碗 + 节拍光环
+   场景 3：副歌大碗
    ============================================================ */
 const SceneChorusBowl = () => {
   const f = useCurrentFrame();
@@ -738,60 +537,26 @@ const SceneChorusBowl = () => {
       }}
     >
       <Sunburst />
-
-      {/* 节拍光环 */}
       <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
         {Array.from({ length: 5 }).map((_, i) => {
           const p = Math.pow(1 - ((((f + i * 3) % BEAT) + BEAT) % BEAT) / BEAT, 3);
           return (
-            <circle
-              key={i}
-              cx={960}
-              cy={560}
-              r={330 + i * 130 + p * 55}
-              fill="none"
-              stroke={i % 2 ? "rgba(255,207,74,0.30)" : "rgba(226,49,70,0.30)"}
-              strokeWidth={3 + p * 5}
-              opacity={0.75 - i * 0.12}
-            />
+            <circle key={i} cx={960} cy={560} r={330 + i * 130 + p * 55} fill="none" stroke={i % 2 ? "rgba(255,207,74,0.30)" : "rgba(226,49,70,0.30)"} strokeWidth={3 + p * 5} opacity={0.75 - i * 0.12} />
           );
         })}
       </svg>
-
-      {/* 大碗 + 蒸汽 */}
       <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
         <ellipse cx="960" cy="880" rx="380" ry="46" fill="rgba(0,0,0,0.42)" />
         <BowlGroup x={960} y={640} s={1.35 + hit * 0.05} lift={Math.sin(f / 9) * 12} />
         {Array.from({ length: 6 }).map((_, i) => {
           const t = (f * 1.4 + i * 70) % 320;
           return (
-            <ellipse
-              key={i}
-              cx={760 + i * 82 + Math.sin(f / 20 + i) * 26}
-              cy={330 - t * 0.7}
-              rx={40 + (i % 3) * 12}
-              ry={22}
-              fill="rgba(255,255,255,0.12)"
-            />
+            <ellipse key={i} cx={760 + i * 82 + Math.sin(f / 20 + i) * 26} cy={330 - t * 0.7} rx={40 + (i % 3) * 12} ry={22} fill="rgba(255,255,255,0.12)" />
           );
         })}
       </svg>
 
-      {/* 招牌字 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 82,
-          width: 1920,
-          textAlign: "center",
-          fontFamily: FONT,
-          fontSize: 120,
-          color: C.gold,
-          letterSpacing: 26,
-          textShadow: `0 0 18px ${C.gold}, 0 0 60px rgba(255,207,74,0.6), 0 20px 50px rgba(0,0,0,0.5)`,
-          transform: `scale(${1 + hit * 0.03})`,
-        }}
-      >
+      <div style={{ position: "absolute", top: 82, width: 1920, textAlign: "center", fontFamily: FONT, fontSize: 120, color: C.gold, letterSpacing: 26, textShadow: `0 0 18px ${C.gold}, 0 0 60px rgba(255,207,74,0.6), 0 20px 50px rgba(0,0,0,0.5)`, transform: `scale(${1 + hit * 0.03})` }}>
         大碗宽面
       </div>
 
@@ -802,7 +567,7 @@ const SceneChorusBowl = () => {
 };
 
 /* ============================================================
-   场景 4：夜市长街（视差滚动）
+   场景 4：夜市长街
    ============================================================ */
 const SceneNight = () => {
   const f = useCurrentFrame();
@@ -816,144 +581,36 @@ const SceneNight = () => {
       }}
     >
       <Stars />
-      <div
-        style={{
-          position: "absolute",
-          left: 260,
-          top: 130,
-          width: 150,
-          height: 150,
-          borderRadius: "50%",
-          background: "radial-gradient(circle at 35% 32%, #fff6d8, #f2c25e)",
-          boxShadow: "0 0 100px rgba(242,194,94,0.5)",
-        }}
-      />
+      <div style={{ position: "absolute", left: 260, top: 130, width: 150, height: 150, borderRadius: "50%", background: "radial-gradient(circle at 35% 32%, #fff6d8, #f2c25e)", boxShadow: "0 0 100px rgba(242,194,94,0.5)" }} />
 
-      {/* 远景天际线 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 520,
-          left: 0,
-          width: 3840,
-          height: 320,
-          transform: `translateX(${layer(0.6)}px)`,
-        }}
-      >
+      <div style={{ position: "absolute", top: 520, left: 0, width: 3840, height: 320, transform: `translateX(${layer(0.6)}px)` }}>
         {Array.from({ length: 16 }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: i * 240,
-              bottom: 0,
-              width: 150 + rnd(i) * 120,
-              height: 120 + rnd(i * 2.2) * 220,
-              background: "#1c1030",
-              borderRadius: "10px 10px 0 0",
-            }}
-          />
+          <div key={i} style={{ position: "absolute", left: i * 240, bottom: 0, width: 150 + rnd(i) * 120, height: 120 + rnd(i * 2.2) * 220, background: "#1c1030", borderRadius: "10px 10px 0 0" }} />
         ))}
       </div>
 
-      {/* 中景灯笼串 */}
-      <svg
-        width="3840"
-        height="1080"
-        style={{ position: "absolute", top: 0, left: 0, transform: `translateX(${layer(1.4)}px)` }}
-      >
-        <path
-          d="M 0 190 Q 480 300 960 190 T 1920 190 T 2880 190 T 3840 190"
-          fill="none"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth="5"
-        />
+      <svg width="3840" height="1080" style={{ position: "absolute", top: 0, left: 0, transform: `translateX(${layer(1.4)}px)` }}>
+        <path d="M 0 190 Q 480 300 960 190 T 1920 190 T 2880 190 T 3840 190" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="5" />
         {Array.from({ length: 10 }).map((_, i) => (
           <Lantern key={i} x={190 + i * 390} y={250 + (i % 2) * 70} s={0.62} phase={i * 0.9} />
         ))}
       </svg>
 
-      {/* 近景摊位 */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          width: 3840,
-          height: 430,
-          transform: `translateX(${layer(2.6)}px)`,
-        }}
-      >
+      <div style={{ position: "absolute", bottom: 0, left: 0, width: 3840, height: 430, transform: `translateX(${layer(2.6)}px)` }}>
         {Array.from({ length: 8 }).map((_, i) => {
           const words = ["宽面", "热汤", "夜市", "小摊"];
           return (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                left: i * 500,
-                bottom: 0,
-                width: 430,
-                height: 330 + (i % 2) * 60,
-                background: "linear-gradient(180deg,#3c1b26,#251120)",
-                borderRadius: "18px 18px 0 0",
-                border: "3px solid rgba(255,207,74,0.28)",
-                borderBottom: "none",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: -52,
-                  left: 40,
-                  right: 40,
-                  height: 84,
-                  borderRadius: 14,
-                  background: i % 2 ? C.red : "#b8243a",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: FONT,
-                  fontSize: 44,
-                  color: C.gold2,
-                  letterSpacing: 10,
-                  boxShadow: "0 0 30px rgba(226,49,70,0.5)",
-                }}
-              >
+            <div key={i} style={{ position: "absolute", left: i * 500, bottom: 0, width: 430, height: 330 + (i % 2) * 60, background: "linear-gradient(180deg,#3c1b26,#251120)", borderRadius: "18px 18px 0 0", border: "3px solid rgba(255,207,74,0.28)", borderBottom: "none" }}>
+              <div style={{ position: "absolute", top: -52, left: 40, right: 40, height: 84, borderRadius: 14, background: i % 2 ? C.red : "#b8243a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: 44, color: C.gold2, letterSpacing: 10, boxShadow: "0 0 30px rgba(226,49,70,0.5)" }}>
                 {words[i % 4]}
               </div>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 60,
-                  top: 110,
-                  width: 310,
-                  height: 150,
-                  borderRadius: 12,
-                  background:
-                    "radial-gradient(ellipse at 50% 80%, rgba(255,190,110,0.5), rgba(255,150,70,0.06))",
-                  border: "2px solid rgba(255,207,74,0.35)",
-                }}
-              />
+              <div style={{ position: "absolute", left: 60, top: 110, width: 310, height: 150, borderRadius: 12, background: "radial-gradient(ellipse at 50% 80%, rgba(255,190,110,0.5), rgba(255,150,70,0.06))", border: "2px solid rgba(255,207,74,0.35)" }} />
             </div>
           );
         })}
       </div>
 
-      {/* 标题 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 92,
-          width: 1920,
-          textAlign: "center",
-          fontFamily: FONT,
-          fontSize: 66,
-          color: C.cream,
-          letterSpacing: 18,
-          textShadow: "0 10px 40px rgba(0,0,0,0.65)",
-        }}
-      >
+      <div style={{ position: "absolute", top: 92, width: 1920, textAlign: "center", fontFamily: FONT, fontSize: 66, color: C.cream, letterSpacing: 18, textShadow: "0 10px 40px rgba(0,0,0,0.65)" }}>
         一条街 · 一碗面 · 一整晚
       </div>
     </AbsoluteFill>
@@ -961,7 +618,7 @@ const SceneNight = () => {
 };
 
 /* ============================================================
-   场景 5：霓虹波浪 + 角落词卡
+   场景 5：霓虹波浪 + 词卡
    ============================================================ */
 const SceneWave = () => {
   const f = useCurrentFrame();
@@ -976,19 +633,8 @@ const SceneWave = () => {
       }}
     >
       <CheckerFloor />
-      <div
-        style={{
-          position: "absolute",
-          top: 460,
-          left: 0,
-          right: 0,
-          height: 240,
-          background:
-            "linear-gradient(180deg, rgba(255,207,74,0), rgba(255,90,60,0.32), rgba(255,207,74,0))",
-        }}
-      />
+      <div style={{ position: "absolute", top: 460, left: 0, right: 0, height: 240, background: "linear-gradient(180deg, rgba(255,207,74,0), rgba(255,90,60,0.32), rgba(255,207,74,0))" }} />
       <WaveBG />
-
       <svg width="1920" height="1080" style={{ position: "absolute", inset: 0 }}>
         <ellipse cx="960" cy="870" rx="330" ry="42" fill="rgba(0,0,0,0.5)" />
         <BowlGroup x={960} y={620} s={1.15 + hit * 0.08} lift={Math.sin(f / 7) * 14} />
@@ -1026,7 +672,7 @@ const SceneWave = () => {
 };
 
 /* ============================================================
-   场景 6：结尾致谢
+   场景 6：结尾
    ============================================================ */
 const SceneOutro = () => {
   const f = useCurrentFrame();
@@ -1044,94 +690,26 @@ const SceneOutro = () => {
         <Lantern x={330} y={330} s={0.85} phase={0.4} />
         <Lantern x={1590} y={330} s={0.85} phase={2.1} />
       </svg>
-
       <NeonRow top={140} />
 
-      {/* 蒸汽帘幕 */}
       {Array.from({ length: 9 }).map((_, i) => {
         const t = (f * 1.2 + i * 90) % 460;
         return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: 90 + i * 210,
-              top: 1080 - t,
-              width: 220,
-              height: 120,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.07)",
-              filter: "blur(12px)",
-            }}
-          />
+          <div key={i} style={{ position: "absolute", left: 90 + i * 210, top: 1080 - t, width: 220, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.07)", filter: "blur(12px)" }} />
         );
       })}
 
-      {/* 谢谢款待 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 400,
-          width: 1920,
-          textAlign: "center",
-          fontFamily: FONT,
-          fontSize: 150,
-          color: C.cream,
-          letterSpacing: 30,
-          textShadow: "0 0 30px rgba(255,207,74,0.45), 0 22px 60px rgba(0,0,0,0.55)",
-          opacity: interpolate(f, [70, 110], [0, 1], clampObj),
-          transform: `translateY(${interpolate(f, [70, 110], [40, 0], clampObj)}px)`,
-        }}
-      >
+      <div style={{ position: "absolute", top: 400, width: 1920, textAlign: "center", fontFamily: FONT, fontSize: 150, color: C.cream, letterSpacing: 30, textShadow: "0 0 30px rgba(255,207,74,0.45), 0 22px 60px rgba(0,0,0,0.55)", opacity: interpolate(f, [70, 110], [0, 1], clampObj), transform: `translateY(${interpolate(f, [70, 110], [40, 0], clampObj)}px)` }}>
         谢谢款待
       </div>
 
-      {/* 印章 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 620,
-          left: 830,
-          width: 260,
-          height: 260,
-          borderRadius: 24,
-          border: `10px solid ${C.red}`,
-          color: C.red,
-          fontFamily: FONT,
-          fontSize: 108,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          letterSpacing: 8,
-          transform: `rotate(-12deg) scale(${seal})`,
-          opacity: interpolate(f, [150, 165], [0, 1], clampObj),
-          boxShadow: "0 0 60px rgba(226,49,70,0.4)",
-          background: "rgba(226,49,70,0.08)",
-        }}
-      >
+      <div style={{ position: "absolute", top: 620, left: 830, width: 260, height: 260, borderRadius: 24, border: `10px solid ${C.red}`, color: C.red, fontFamily: FONT, fontSize: 108, display: "flex", alignItems: "center", justifyContent: "center", letterSpacing: 8, transform: `rotate(-12deg) scale(${seal})`, opacity: interpolate(f, [150, 165], [0, 1], clampObj), boxShadow: "0 0 60px rgba(226,49,70,0.4)", background: "rgba(226,49,70,0.08)" }}>
         完
       </div>
 
-      {/* 结尾信息 */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 150,
-          width: 1920,
-          textAlign: "center",
-          opacity: interpolate(f, [230, 270], [0, 1], clampObj),
-        }}
-      >
+      <div style={{ position: "absolute", bottom: 150, width: 1920, textAlign: "center", opacity: interpolate(f, [230, 270], [0, 1], clampObj) }}>
         <div style={{ fontFamily: FONT2, fontSize: 34, color: C.gold2, letterSpacing: 14 }}>THE END</div>
-        <div
-          style={{
-            marginTop: 16,
-            fontFamily: FONT2,
-            fontSize: 24,
-            color: "rgba(255,243,226,0.6)",
-            letterSpacing: 6,
-          }}
-        >
+        <div style={{ marginTop: 16, fontFamily: FONT2, fontSize: 24, color: "rgba(255,243,226,0.6)", letterSpacing: 6 }}>
           大碗宽面 · 2D MV 概念样片 · MADE WITH REMOTION
         </div>
       </div>
@@ -1145,7 +723,6 @@ const SceneOutro = () => {
 const DaWanKuanMianMV = () => {
   const frame = useCurrentFrame();
 
-  /* 字体加载完成后再截帧 */
   const [handle] = React.useState(() => delayRender("load-fonts"));
   React.useEffect(() => {
     let done = false;
@@ -1170,7 +747,6 @@ const DaWanKuanMianMV = () => {
     <AbsoluteFill style={{ background: C.night }}>
       {TRACK ? <Audio src={TRACK} /> : null}
 
-      {/* 轻微的节拍呼吸镜头 */}
       <AbsoluteFill style={{ transform: `scale(${1 + hit * 0.006})` }}>
         <Sequence from={0} durationInFrames={380}>
           <SceneIntro />
@@ -1192,30 +768,16 @@ const DaWanKuanMianMV = () => {
         </Sequence>
       </AbsoluteFill>
 
-      {/* 暗角 */}
-      <AbsoluteFill
-        style={{
-          pointerEvents: "none",
-          background: "radial-gradient(ellipse at center, transparent 55%, rgba(10,4,18,0.55) 100%)",
-        }}
-      />
-      {/* 颗粒质感 */}
+      <AbsoluteFill style={{ pointerEvents: "none", background: "radial-gradient(ellipse at center, transparent 55%, rgba(10,4,18,0.55) 100%)" }} />
       <AbsoluteFill
         style={{
           pointerEvents: "none",
           opacity: 0.05,
-          backgroundImage:
-            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/></filter><rect width=\'160\' height=\'160\' filter=\'url(%23n)\' opacity=\'0.7\'/></svg>")',
+          backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/></filter><rect width=\'160\' height=\'160\' filter=\'url(%23n)\' opacity=\'0.7\'/></svg>")',
           backgroundSize: "240px 240px",
         }}
       />
-      {/* 结尾淡出 */}
-      <AbsoluteFill
-        style={{
-          background: "#000",
-          opacity: interpolate(frame, [2946, 2998], [0, 1], clampObj),
-        }}
-      />
+      <AbsoluteFill style={{ background: "#000", opacity: interpolate(frame, [2946, 2998], [0, 1], clampObj) }} />
     </AbsoluteFill>
   );
 };
