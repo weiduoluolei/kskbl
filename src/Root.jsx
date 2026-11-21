@@ -37,9 +37,9 @@ const COLORS = {
 const INTRO_ACCENT = '#e9b44c';
 const OUTRO_ACCENT = '#e9b44c';
 
-// ✅ 修改：使用 Noto Sans CJK SC（思源黑体，yml安装后系统自带）
-const FONT_DISPLAY = '"Noto Sans CJK SC", sans-serif';
-const FONT_BODY = '"Noto Sans CJK SC", sans-serif';
+// ✅ 改用webfont加载，不依赖系统字体！
+const FONT_DISPLAY = '"Noto Sans SC", sans-serif';
+const FONT_BODY = '"Noto Sans SC", sans-serif';
 const FONT_LATIN = 'Georgia, Times New Roman, serif';
 
 // 需要背景音乐：上传 public/music.mp3，把false改为true
@@ -47,13 +47,31 @@ const MUSIC_ENABLED = false;
 
 const CLAMP = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'};
 
-/* ========================= 字体（谷歌字体已全部弃用，函数保留但不调用） ========================= */
-const FONT_CSS = '';
+/* ========================= 字体：内置思源黑体，渲染时自动加载，不需要系统预装 ========================= */
+const FONT_CSS = `
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("https://fonts.gstatic.com/s/notosanssc/v36/k3kXo84MPvpLmixcA63oeALhLOCT-xWNm8Hqd37g1OkDRZofYDYCjXnId5v2TLiVKm9DcSNE9cuiaoT5Ac5jJ88oY8b25OJw.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("https://fonts.gstatic.com/s/notosanssc/v36/k3kXo84MPvpLmixcA63oeALhLOCT-xWNm8Hqd37g1OkDRZofYDYCjXnId5v2TLiVKm9DcSNE9cuiaoT5Ac5jJ88oY8b25OJw.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+}
+`;
 const loadFonts = () => {
   if (typeof document === 'undefined') return;
   const handle = delayRender('Loading webfonts');
-  const done = () => continueRender(handle);
-  done();
+  const style = document.createElement('style');
+  style.textContent = FONT_CSS;
+  document.head.appendChild(style);
+  // 等待字体加载完成
+  document.fonts.ready.then(() => {
+    continueRender(handle);
+  });
 };
 
 /* ========================= 文案数据 ========================= */
@@ -879,7 +897,10 @@ const Outro = () => {
 };
 
 /* ========================= 主合成 ========================= */
-const HumanHistory = () => (
+const HumanHistory = () => {
+  // 启动字体加载
+  loadFonts();
+  return (
   <AbsoluteFill style={{backgroundColor: COLORS.bg, fontFamily: FONT_BODY, color: COLORS.text}}>
     <Background />
 
@@ -918,9 +939,9 @@ const HumanHistory = () => (
       />
     ) : null}
   </AbsoluteFill>
-);
+  )
+};
 
-// loadFonts(); // 已禁用，不再加载谷歌在线字体
 const Root = () => (
   <Composition
     id="HumanHistory"
