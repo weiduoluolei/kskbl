@@ -37,55 +37,26 @@ const COLORS = {
 const INTRO_ACCENT = '#e9b44c';
 const OUTRO_ACCENT = '#e9b44c';
 
-const FONT_DISPLAY = '"ZCOOL XiaoWei", "Noto Serif SC", "Songti SC", serif';
-const FONT_BODY = '"Noto Serif SC", "Songti SC", "STSong", serif';
-const FONT_LATIN = '"Cormorant Garamond", "Noto Serif SC", serif';
+// GitHub Ubuntu自带安全中文字体：WenQuanYi Zen Hei（文泉驿正黑），不依赖谷歌网络字体，中文不会丢失
+const FONT_DISPLAY = '"WenQuanYi Zen Hei", "Noto Sans CJK SC", sans-serif';
+const FONT_BODY = '"WenQuanYi Zen Hei", "Noto Sans CJK SC", sans-serif';
+const FONT_LATIN = 'Georgia, Times New Roman, serif';
 
-// 把 public/music.mp3 放好之后，改成 true 即可带上音乐
+// 需要背景音乐：上传 public/music.mp3，把false改为true
 const MUSIC_ENABLED = false;
 
 const CLAMP = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'};
 
-/* ========================= 字体 ========================= */
-
-const FONT_CSS =
-  'https://fonts.googleapis.com/css2' +
-  '?family=ZCOOL+XiaoWei' +
-  '&family=Noto+Serif+SC:wght@300;400;600;700' +
-  '&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600' +
-  '&display=swap';
-
+/* ========================= 字体（谷歌字体已全部弃用，函数保留但不调用） ========================= */
+const FONT_CSS = '';
 const loadFonts = () => {
   if (typeof document === 'undefined') return;
   const handle = delayRender('Loading webfonts');
   const done = () => continueRender(handle);
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = FONT_CSS;
-  link.onload = async () => {
-    try {
-      await Promise.race([
-        Promise.all([
-          document.fonts.load('400 100px "ZCOOL XiaoWei"'),
-          document.fonts.load('400 60px "Noto Serif SC"'),
-          document.fonts.load('700 60px "Noto Serif SC"'),
-          document.fonts.load('italic 300 120px "Cormorant Garamond"'),
-          document.fonts.load('600 60px "Cormorant Garamond"'),
-        ]),
-        new Promise((r) => setTimeout(r, 5000)),
-      ]);
-      await document.fonts.ready;
-    } catch (e) {
-      /* 加载失败则回退系统衬线体 */
-    }
-    done();
-  };
-  link.onerror = done;
-  document.head.appendChild(link);
+  done();
 };
 
 /* ========================= 文案数据 ========================= */
-
 const CHAPTERS = [
   {
     cn: '一',
@@ -275,7 +246,7 @@ const CHAPTERS = [
       {
         year: '1989',
         head: '万维网诞生',
-        desc: '蒂姆·伯纳斯-李提出万维网，知识第一次真正全球共享。',
+        desc: '蒂姆·伯纳斯‑李提出万维网，知识第一次真正全球共享。',
         sub: '万维网让知识几乎零成本地流向每个人。',
       },
       {
@@ -374,7 +345,7 @@ const Background = () => {
       </svg>
       <AbsoluteFill
         style={{
-          background: 'radial-gradient(ellipse at 50% 46%, transparent 48%, rgba(2,4,9,0.62) 100%)',
+          background: 'radial‑gradient(ellipse at 50% 46%, transparent 48%, rgba(2,4,9,0.62) 100%)',
         }}
       />
     </AbsoluteFill>
@@ -423,7 +394,7 @@ const Timeline = () => {
           width: trackWidth * progress,
           height: 3,
           borderRadius: 2,
-          background: `linear-gradient(90deg, ${CHAPTERS.map((c) => c.accent).join(', ')}, ${COLORS.gold})`,
+          background: `linear‑gradient(90deg, ${CHAPTERS.map((c) => c.accent).join(', ')}, ${COLORS.gold})`,
           boxShadow: '0 0 16px rgba(233,180,76,0.35)',
         }}
       />
@@ -509,7 +480,7 @@ const Sweep = () => {
           width: 860,
           height: 1560,
           transform: `translateX(${x}px) rotate(18deg)`,
-          background: 'linear-gradient(90deg, transparent, rgba(255,222,178,0.18), transparent)',
+          background: 'linear‑gradient(90deg, transparent, rgba(255,222,178,0.18), transparent)',
           filter: 'blur(16px)',
           opacity,
         }}
@@ -658,13 +629,13 @@ const Intro = () => {
             <span
               key={i}
               style={{
-                display: 'inline-block',
+                display: 'inline‑block',
                 fontFamily: FONT_DISPLAY,
                 fontSize: 168,
                 lineHeight: 1.2,
                 opacity: t,
                 transform: `translateY(${(1 - t) * 64}px)`,
-                background: 'linear-gradient(180deg, #f8e7b8 0%, #e9b44c 52%, #c8892c 100%)',
+                background: 'linear‑gradient(180deg, #f8e7b8 0%, #e9b44c 52%, #c8892c 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
@@ -683,7 +654,7 @@ const Intro = () => {
           transform: 'translateX(-50%)',
           width: ruleWidth,
           height: 2,
-          background: 'linear-gradient(90deg, transparent, #e9b44c, transparent)',
+          background: 'linear‑gradient(90deg, transparent, #e9b44c, transparent)',
         }}
       />
 
@@ -732,7 +703,7 @@ const ChapterScene = ({chapter, duration, index}) => {
           top: 96,
           width: 2,
           height: 800,
-          background: `linear-gradient(180deg, ${chapter.accent}00, ${chapter.accent}55 30%, ${chapter.accent}22 75%, ${chapter.accent}00)`,
+          background: `linear‑gradient(180deg, ${chapter.accent}00, ${chapter.accent}55 30%, ${chapter.accent}22 75%, ${chapter.accent}00)`,
         }}
       />
 
@@ -742,7 +713,7 @@ const ChapterScene = ({chapter, duration, index}) => {
           position: 'absolute',
           left: 56,
           top: 132,
-          writingMode: 'vertical-rl',
+          writingMode: 'vertical‑rl',
           fontFamily: FONT_BODY,
           fontSize: 23,
           letterSpacing: 9,
@@ -871,7 +842,7 @@ const Outro = () => {
           transform: 'translateX(-50%)',
           width: ruleWidth,
           height: 2,
-          background: 'linear-gradient(90deg, transparent, #e9b44c, transparent)',
+          background: 'linear‑gradient(90deg, transparent, #e9b44c, transparent)',
         }}
       />
 
@@ -930,7 +901,7 @@ const HumanHistory = () => (
       style={{
         pointerEvents: 'none',
         background:
-          'linear-gradient(to top, rgba(4,7,12,0.8) 0%, rgba(4,7,12,0.38) 15%, transparent 27%)',
+          'linear‑gradient(to top, rgba(4,7,12,0.8) 0%, rgba(4,7,12,0.38) 15%, transparent 27%)',
       }}
     />
 
@@ -949,8 +920,7 @@ const HumanHistory = () => (
   </AbsoluteFill>
 );
 
-/* ========================= 注册 ========================= */
-// loadFonts(); // 已注释，避免GitHub云端加载谷歌字体超时
+// loadFonts(); // 已禁用，不再加载谷歌在线字体
 const Root = () => (
   <Composition
     id="HumanHistory"
@@ -961,5 +931,4 @@ const Root = () => (
     height={HEIGHT}
   />
 );
-
 registerRoot(Root);
