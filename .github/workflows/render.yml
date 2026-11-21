@@ -1,0 +1,20 @@
+名称: 渲染视频
+在: workflow_dispatch
+任务:
+render:
+    runs-on: ubuntu-latest
+步骤:
+      - 使用: actions/checkout@v4
+      - 名称: Setup Node.js
+使用: actions/setup-node@v4
+与:
+          node-version: 20
+      - 名称: 安装依赖
+运行: npm install
+      - 名称: 渲染视频
+运行: npx remotion render src/index.tsx out/video.mp4
+      - 名称: 上传
+使用: actions/upload-artifact@v4
+与:
+名称: 视频
+路径: out/video.mp4
