@@ -1,36 +1,29 @@
 name: Render Video
-run-name: Render Video 🎬
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
+  workflow_dispatch: # 手动触发（推荐，不会自动跑扣时长）
 jobs:
   render:
+    name: Render
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install Chinese font
-        run: |
-          sudo apt update
-          sudo apt install -y fonts-noto-cjk
-          fc-cache -fv
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Render video
-        run: npx remotion render src/Root.jsx out/video.mp4
+        run: npx remotion render src/Root.jsx ShortCircuitVideo out/video.mp4 --codec h264
 
-      - name: Upload video
+      - name: Upload finished video
         uses: actions/upload-artifact@v4
         with:
-          name: video-output
+          name: rendered-video
           path: out/video.mp4
