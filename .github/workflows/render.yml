@@ -25,7 +25,7 @@ jobs:
         run: npm install
 
       - name: Render video
-        run: npx remotion render Root out/video.mp4
+        run: npx remotion render src/Root.jsx HumanHistory out/video.mp4
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
