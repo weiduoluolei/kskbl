@@ -7,6 +7,7 @@ import {
   spring,
   useCurrentFrame,
   useVideoConfig,
+  registerRoot,
 } from "remotion";
 // 注意：如果你的项目没有 ./sounds.js 音效文件，注释掉这一行以及所有Audio音效调用
 import {
@@ -42,7 +43,7 @@ const THEME = {
   danger2: "#ff9a3c",
   good: "#3fe3a1",
 };
-// ✅ 修复字体名称，匹配GitHub Actions安装 Noto Sans CJK SC，解决中文方框
+// ✅ 匹配系统安装的 Noto Sans CJK SC，解决中文方框
 const FONT = `"Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
 const MONO = `"JetBrains Mono","SFMono-Regular",Consolas,monospace`;
 const clamp = {
@@ -379,7 +380,6 @@ const Electron: React.FC<{ x: number; y: number; color: string; r: number }> = (
   <circle cx={x} cy={y} r={r} fill={color} style={{ filter: `drop-shadow(0 0 ${r * 3}px ${color})` }} />
 );
 
-// ✅ 修复原代码语法错误，把错误 </> 改成正确闭合 </>
 const BulbGlass: React.FC<{ color: string; glow: number }> = ({ color, glow }) => (
   <>
     <circle cx={GEO.bulbX} cy={GEO.y1} r={54} fill="rgba(255,255,255,0.045)" stroke={color} strokeWidth={4} />
@@ -452,7 +452,6 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
   showSwitch = true,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const toShort = shorted
     ? spring({ frame, config: { damping: 13, stiffness: 110 }, durationInFrames: 34 })
     : 0;
@@ -586,7 +585,7 @@ const SceneHook: React.FC = () => {
             {/* 电源 */}
             <g>
               <rect x={30} y={260} width={190} height={70} rx={16} fill="rgba(63,227,255,0.08)" stroke="rgba(63,227,255,0.3)" strokeWidth={2} />
-              <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={700}>
+              <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={70}>
                 电源
               </text>
             </g>
@@ -706,7 +705,7 @@ const SceneWhat: React.FC = () => {
           <svg viewBox="0 0 820 430" width="100%" height="100%">
             {/* 用电器 */}
             <rect x={60} y={120} width={230} height={150} rx={20} fill="rgba(255,194,71,0.08)" stroke={THEME.amber} strokeWidth={3} />
-            <text x={175} y={195} textAnchor="middle" fill={THEME.amber} fontSize={32} fontWeight={700}>
+            <text x={175} y={195} textAnchor="middle" fill={THEME.amber} fontSize={32} fontWeight={70}>
               用电器
             </text>
             <text x={175} y={235} textAnchor="middle" fill={THEME.sub} fontSize={24}>
@@ -738,8 +737,8 @@ const SceneWhat: React.FC = () => {
               return (
                 <circle
                   key={i}
-                  cx={onShort ? p.x : p.x}
-                  cy={onShort ? p.y : t > 0.75 ? 320 : 150}
+                  cx={p.x}
+                  cy={p.y}
                   r={8}
                   fill={onShort ? THEME.danger2 : THEME.cyan}
                   style={{ filter: `drop-shadow(0 0 10px ${onShort ? THEME.danger2 : THEME.cyan})` }}
@@ -844,7 +843,6 @@ const SceneNormal: React.FC = () => {
                   background: isShort ? "rgba(255,77,94,0.25)" : "rgba(63,227,255,0.2)",
                   border: `2px solid ${isShort ? THEME.danger : THEME.cyan}`,
                   position: "relative",
-                  transition: "all .35s",
                 }}
               >
                 <div
@@ -872,7 +870,7 @@ const SceneNormal: React.FC = () => {
                 <span style={{ color: THEME.sub, fontSize: 26 }}>总电阻 R</span>
                 <Counter value={isShort ? 0.15 : 400} unit="Ω" color={isShort ? THEME.danger : THEME.good} digits={isShort ? 2 : 0} />
               </div>
-              <div style={{ display: "flex", justifyContent: "space‑between", alignItems: "baseline" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <span style={{ color: THEME.sub, fontSize: 26 }}>导线温度</span>
                 <Counter value={isShort ? 320 : 26} unit="℃" color={isShort ? THEME.danger2 : THEME.good} digits={0} />
               </div>
@@ -885,7 +883,7 @@ const SceneNormal: React.FC = () => {
                   style={{
                     height: "100%",
                     width: `${isShort ? 96 : 12}%`,
-                    background: isShort ? `linear‑gradient(90deg,${THEME.danger2},${THEME.danger})` : `linear‑gradient(90deg,${THEME.good},${THEME.cyan})`,
+                    background: isShort ? `linear-gradient(90deg,${THEME.danger2},${THEME.danger})` : `linear-gradient(90deg,${THEME.good},${THEME.cyan})`,
                     boxShadow: `0 0 18px ${isShort ? THEME.danger : THEME.cyan}`,
                     transition: "width .5s",
                   }}
@@ -940,7 +938,7 @@ const SceneFormula: React.FC = () => {
           {/* 对比柱 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24, width: 620 }}>
             <Panel style={{ padding: "28px 36px", opacity: enter(24) }}>
-              <div style={{ display: "flex", justifyContent: "space‑between", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ color: THEME.good, fontSize: 30, fontWeight: 800 }}>正常电路</div>
                   <div style={{ color: THEME.sub, fontSize: 24, marginTop: 6 }}>R = 400 Ω</div>
@@ -960,7 +958,7 @@ const SceneFormula: React.FC = () => {
                 boxShadow: `0 0 ${40 * blow}px rgba(255,77,94,0.45)`,
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space‑between", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ color: THEME.danger, fontSize: 30, fontWeight: 800 }}>短路时</div>
                   <div style={{ color: THEME.sub, fontSize: 24, marginTop: 6 }}>R ≈ 0.15 Ω</div>
@@ -984,7 +982,7 @@ const SceneFormula: React.FC = () => {
                   style={{
                     height: "100%",
                     width: `${97 * enter(48)}%`,
-                    background: `linear‑gradient(90deg,${THEME.danger2},${THEME.danger})`,
+                    background: `linear-gradient(90deg,${THEME.danger2},${THEME.danger})`,
                     boxShadow: `0 0 22px ${THEME.danger}`,
                   }}
                 />
@@ -1019,7 +1017,6 @@ const SceneFormula: React.FC = () => {
    ============================================================ */
 const SceneDanger: React.FC = () => {
   const f = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const glow = 0.55 + 0.45 * Math.abs(Math.sin(f / 9));
   const temp = interpolate(f, [30, 110], [26, 480], clamp);
   const flame = interpolate(f, [70, 110], [0, 1], clamp);
@@ -1048,7 +1045,7 @@ const SceneDanger: React.FC = () => {
               stroke={mixHex("#c2452c", "#ff7a2e", glow)}
               strokeWidth={22}
               strokeLinecap="round"
-              style={{ filter: `drop‑shadow(0 0 ${16 + 22 * glow}px rgba(255,90,46,0.95))` }}
+              style={{ filter: `drop-shadow(0 0 ${16 + 22 * glow}px rgba(255,90,46,0.95))` }}
             />
             <path
               d="M 60 250 C 240 170, 540 330, 720 250"
@@ -1182,4 +1179,104 @@ const ScenePrevent: React.FC = () => {
                 <div style={{ color: THEME.text, fontSize: 31, fontWeight: 800, marginTop: 22, lineHeight: 1.45 }}>
                   {tip.t}
                 </div>
-                <div style={{ color: THEME.sub, fontSize: 23, marginTop: 14, lineHeight: 1.7 }}>{tip.d
+                <div style={{ color: THEME.sub, fontSize: 23, marginTop: 14, lineHeight: 1.7 }}>{tip.d}</div>
+              </Panel>
+            );
+          })}
+        </div>
+        {/* 结尾总结条 */}
+        <div
+          style={{
+            position: "absolute",
+            top: 800,
+            left: 130,
+            right: 130,
+            height: 150,
+            borderRadius: 22,
+            background: `linear-gradient(90deg, rgba(63,227,255,0.12), rgba(255,77,94,0.12))`,
+            border: `1px solid ${THEME.line}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 46px",
+            opacity: interpolate(f, [150, 180], [0, 1], clamp),
+          }}
+        >
+          <div style={{ color: THEME.text, fontSize: 34, fontWeight: 700, letterSpacing: 2 }}>
+            短路并不可怕，<span style={{ color: THEME.danger }}>不懂它</span>才可怕。
+          </div>
+          <div style={{ color: THEME.sub, fontSize: 26 }}>
+            看懂原理 · 规范用电 · 及时断电
+          </div>
+        </div>
+        <Caption text="不乱接导线、装好保险丝、不超负荷用电。" delay={6} />
+        <Caption text="看懂原理，规范用电，短路就能被我们挡在门外。" delay={150} />
+      </AbsoluteFill>
+    </SceneFade>
+  );
+};
+
+/* ============================================================
+   主合成：时间轴 + 音效
+   ============================================================ */
+const ShortCircuitVideo: React.FC = () => {
+  const frame = useCurrentFrame();
+  const S = (s: number) => Math.round(s * 30);
+  // 音效触发点（全局帧）
+  const tSpark = S(1.55);
+  const tAlarm = S(2.1);
+  const tRiser = S(5.2);
+  const tPop2 = S(6.2);
+  const tClick = S(11.15);
+  const tShort = S(16.15);
+  const tSpark2 = S(16.4);
+  const tAlarm2 = S(16.9);
+  const tPop4 = S(21.4);
+  const tBoom = S(26.05);
+  return (
+    <AbsoluteFill style={{ background: THEME.bg, fontFamily: FONT }}>
+      <Backdrop />
+      {/* 场景（有声版本） */}
+      <Sequence from={0} durationInFrames={S(6)} premountFor={30}>
+        <SceneHook />
+        <Audio src={sndHum} volume={0.14} />
+        <Audio src={sndSpark} startFrom={tSpark} volume={0.9} />
+        <Audio src={sndAlarm} startFrom={tAlarm} volume={0.75} />
+        <Audio src={sndRiser} startFrom={tRiser} volume={0.55} />
+      </Sequence>
+      <Sequence from={S(6)} durationInFrames={S(5)} premountFor={30}>
+        <SceneWhat />
+        <Audio src={sndPop} startFrom={tPop2} volume={0.7} />
+      </Sequence>
+      <Sequence from={S(11)} durationInFrames={S(5)} premountFor={30}>
+        <SceneNormal />
+        <Audio src={sndClick} startFrom={tClick} volume={0.85} />
+        <Audio src={sndSpark} startFrom={tShort} volume={0.9} />
+        <Audio src={sndSpark} startFrom={tSpark2} volume={0.7} />
+        <Audio src={sndAlarm} startFrom={tAlarm2} volume={0.6} />
+      </Sequence>
+      <Sequence from={S(16)} durationInFrames={S(5)} premountFor={30}>
+        <SceneFormula />
+        <Audio src={sndPop} startFrom={tPop4} volume={0.7} />
+      </Sequence>
+      <Sequence from={S(21)} durationInFrames={S(5)} premountFor={30}>
+        <SceneDanger />
+        <Audio src={sndBoom} startFrom={tBoom} volume={0.85} />
+      </Sequence>
+      <Sequence from={S(26)} durationInFrames={S(7.8)} premountFor={30}>
+        <ScenePrevent />
+      </Sequence>
+      {/* 片尾渐隐 */}
+      <AbsoluteFill
+        style={{
+          background: "#000",
+          opacity: interpolate(frame, [VIDEO_CONFIG.durationInFrames - 26, VIDEO_CONFIG.durationInFrames - 2], [0, 1], clamp),
+          pointerEvents: "none",
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+// ✅ 补上注册入口，解决 CLI 报错
+registerRoot(ShortCircuitVideo);
