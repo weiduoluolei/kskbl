@@ -4,17 +4,22 @@ on:
 jobs:
   render:
     name: Render
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu‑latest
+    timeout‑minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Chinese font
+        run: |
+          sudo apt update
+          sudo apt install -y fonts‑noto‑cjk
+          fc‑cache -fv
+
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup‑node@v4
         with:
-          node-version: 20
-          # 删掉 cache: npm！！不开启缓存，就不会去找lock文件
+          node‑version: 20
 
       - name: Install dependencies
         run: npm install
@@ -23,7 +28,7 @@ jobs:
         run: npx remotion render src/Root.jsx ShortCircuitVideo out/video.mp4 --codec h264
 
       - name: Upload finished video
-        uses: actions/upload-artifact@v4
+        uses: actions/upload‑artifact@v4
         with:
-          name: rendered-video
+          name: rendered‑video
           path: out/video.mp4
