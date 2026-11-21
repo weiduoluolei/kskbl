@@ -15,3 +15,20 @@ jobs:
           sudo apt update
           sudo apt install -y fonts-noto-cjk
           fc-cache -fv
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Render video
+        run: npx remotion render src/Root.jsx ShortCircuitVideo out/video.mp4 --codec h264
+
+      - name: Upload finished video
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-video
+          path: out/video.mp4
