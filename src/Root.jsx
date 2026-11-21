@@ -5,6 +5,7 @@ import {
   interpolate,
   spring,
   useCurrentFrame,
+  useVideoConfig,
   registerRoot,
   Composition,
 } from "remotion";
@@ -15,7 +16,6 @@ export const VIDEO_CONFIG = {
   fps: 30,
   durationInFrames: 1015,
 };
-
 const THEME = {
   bg: "#070b17",
   bg2: "#0c1326",
@@ -31,7 +31,7 @@ const THEME = {
   good: "#3fe3a1",
 };
 const FONT = `"Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
-const MONO = `"JetBrains Mono","SFMono-Regular",Consolas,monospace`;
+const MONO = `"JetBrains Mono","SFMono‑Regular",Consolas,monospace`;
 const clamp = {
   extrapolateLeft: "clamp",
   extrapolateRight: "clamp",
@@ -52,7 +52,6 @@ const mixHex = (a, b, t) => {
   return `rgb(${r},${g},${bl})`;
 };
 
-// ---------------- 全部小组件（内部会使用useCurrentFrame） ----------------
 const SceneFade = ({ children }) => {
   const f = useCurrentFrame();
   const opacity = interpolate(f, [0, 10], [0, 1], clamp);
@@ -140,13 +139,16 @@ const ActLabel = ({ num, title, color = THEME.cyan }) => {
   );
 };
 
+// =========修复：Title组件 spring补fps=========
 const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
   const f = useCurrentFrame();
+  const { fps } = useVideoConfig();
   return (
     <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
       {text.split("").map((ch, i) => {
         const t = spring({
           frame: f - delay - i * 3,
+          fps,
           config: { damping: 12, stiffness: 130 },
         });
         return (
@@ -160,7 +162,7 @@ const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
               lineHeight: 1.18,
               opacity: t,
               transform: `translateY(${(1 - t) * 42}px) scale(${0.86 + 0.14 * t})`,
-              display: "inline-block",
+              display: "inline‑block",
               whiteSpace: "pre",
             }}
           >
@@ -175,7 +177,7 @@ const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
 const Panel = ({ children, style, glow }) => (
   <div
     style={{
-      background: `linear-gradient(155deg, ${THEME.panel} 0%, ${THEME.panel2} 100%)`,
+      background: `linear‑gradient(155deg, ${THEME.panel} 0%, ${THEME.panel2} 100%)`,
       border: `1px solid ${THEME.line}`,
       borderRadius: 24,
       boxShadow: glow
@@ -188,14 +190,16 @@ const Panel = ({ children, style, glow }) => (
   </div>
 );
 
+// =========修复：AlertBadge spring补fps=========
 const AlertBadge = ({ label = "危险！" }) => {
   const f = useCurrentFrame();
-  const s = spring({ frame: f, config: { damping: 8, stiffness: 170 } });
+  const { fps } = useVideoConfig();
+  const s = spring({ frame: f, fps, config: { damping: 8, stiffness: 170 } });
   const pulse = 0.55 + 0.45 * Math.abs(Math.sin(f / 7));
   return (
     <div
       style={{
-        display: "inline-flex",
+        display: "inline‑flex",
         alignItems: "center",
         gap: 12,
         padding: "10px 22px",
@@ -239,7 +243,7 @@ const Backdrop = () => {
           height: 1400,
           left: -320 + drift,
           top: -520,
-          background: `radial-gradient(circle, rgba(63,227,255,0.15) 0%, transparent 62%)`,
+          background: `radial‑gradient(circle, rgba(63,227,255,0.15) 0%, transparent 62%)`,
         }}
       />
       <div
@@ -249,18 +253,18 @@ const Backdrop = () => {
           height: 1300,
           right: -420 - drift,
           bottom: -560,
-          background: `radial-gradient(circle, rgba(255,77,94,0.14) 0%, transparent 62%)`,
+          background: `radial‑gradient(circle, rgba(255,77,94,0.14) 0%, transparent 62%)`,
         }}
       />
       <div
         style={{
           position: "absolute",
           inset: 0,
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)`,
+          backgroundImage: `linear‑gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+                            linear‑gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)`,
           backgroundSize: "72px 72px",
-          maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
-          WebkitMaskImage: "radial-gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
+          maskImage: "radial‑gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
+          WebkitMaskImage: "radial‑gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
         }}
       />
     </AbsoluteFill>
@@ -310,7 +314,7 @@ const ptAt = (p) => {
 };
 
 const Electron = ({ x, y, color, r }) => (
-  <circle cx={x} cy={y} r={r} fill={color} style={{ filter: `drop-shadow(0 0 ${r * 3}px ${color})` }} />
+  <circle cx={x} cy={y} r={r} fill={color} style={{ filter: `drop‑shadow(0 0 ${r * 3}px ${color})` }} />
 );
 
 const BulbGlass = ({ color, glow }) => (
@@ -351,10 +355,12 @@ const BatterySymbol = ({ color }) => (
   </g>
 );
 
+// =========修复 CircuitDemo spring补fps=========
 const CircuitDemo = ({ shorted }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const toShort = shorted
-    ? spring({ frame, config: { damping: 13, stiffness: 110 }, durationInFrames: 34 })
+    ? spring({ frame, fps, config: { damping: 13, stiffness: 110 }, durationInFrames: 34 })
     : 0;
   const heat = shorted ? interpolate(frame, [22, 72], [0, 1], clamp) : 0;
   const wireColor = mixHex("#4d83b8", "#ff5a2e", heat);
@@ -394,7 +400,7 @@ const CircuitDemo = ({ shorted }) => {
             r={5 * (1 - t)}
             fill={i % 2 ? THEME.danger2 : THEME.cyan}
             opacity={1 - t}
-            style={{ filter: "drop-shadow(0 0 8px rgba(255,154,60,0.9))" }}
+            style={{ filter: "drop‑shadow(0 0 8px rgba(255,154,60,0.9))" }}
           />
         );
       }
@@ -416,7 +422,7 @@ const CircuitDemo = ({ shorted }) => {
         strokeLinecap="round"
         strokeDasharray={bypassDash > 0 ? `${bypassDash} 400` : undefined}
         style={{
-          filter: `drop-shadow(0 0 ${6 + 22 * heat}px rgba(255,90,46,${0.35 + 0.5 * heat}))`,
+          filter: `drop‑shadow(0 0 ${6 + 22 * heat}px rgba(255,90,46,${0.35 + 0.5 * heat}))`,
           opacity: 0.35 + 0.65 * toShort,
         }}
       />
@@ -426,7 +432,6 @@ const CircuitDemo = ({ shorted }) => {
   );
 };
 
-// ---------------- 各个场景组件 ----------------
 const SceneHook = () => {
   const f = useCurrentFrame();
   const ignite = interpolate(f, [40, 52], [0, 1], clamp);
@@ -452,7 +457,7 @@ const SceneHook = () => {
           <Title text="一根导线" size={92} color={THEME.text} />
           <div style={{ height: 18 }} />
           <Title text="就能引发火灾" size={92} color={THEME.danger} delay={14} />
-          <div style={{ marginTop: 46, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ marginTop: 46, display: "flex", justifyContent: "flex‑end" }}>
             <AlertBadge label="短路 = 失控的大电流" />
           </div>
         </div>
@@ -464,9 +469,11 @@ const SceneHook = () => {
   );
 };
 
+// =========修复 SceneWhat spring补fps=========
 const SceneWhat = () => {
   const f = useCurrentFrame();
-  const reveal = spring({ frame: f - 22, config: { damping: 14, stiffness: 120 } });
+  const { fps } = useVideoConfig();
+  const reveal = spring({ frame: f - 22, fps, config: { damping: 14, stiffness: 120 } });
   const grow = interpolate(f, [70, 120], [0, 1], clamp);
   return (
     <SceneFade>
@@ -517,9 +524,11 @@ const SceneNormal = () => {
   );
 };
 
+// =========修复 SceneFormula spring补fps=========
 const SceneFormula = () => {
   const f = useCurrentFrame();
-  const enter = (d) => spring({ frame: f - d, config: { damping: 13, stiffness: 120 } });
+  const { fps } = useVideoConfig();
+  const enter = (d) => spring({ frame: f - d, fps, config: { damping: 13, stiffness: 120 } });
   return (
     <SceneFade>
       <AbsoluteFill style={{ fontFamily: FONT }}>
@@ -546,8 +555,10 @@ const SceneFormula = () => {
   );
 };
 
+// =========修复 SceneDanger spring补fps=========
 const SceneDanger = () => {
   const f = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const cards = [
     { icon: "🔥", title: "烧毁绝缘层", desc: "高温让导线外皮熔化、起火" },
     { icon: "⚡", title: "烧坏电源", desc: "大电流瞬间损坏电池 / 变压器" },
@@ -563,7 +574,7 @@ const SceneDanger = () => {
         </div>
         <div style={{ position: "absolute", right: 110, top: 290, width: 800, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26 }}>
           {cards.map((c, i) => {
-            const t = spring({ frame: f - 24 - i * 12, config: { damping: 13, stiffness: 120 } });
+            const t = spring({ frame: f - 24 - i * 12, fps, config: { damping: 13, stiffness: 120 } });
             return (
               <Panel key={c.title} style={{ padding: "30px 32px", opacity: t, transform: `translateY(${(1 - t) * 46}px)` }}>
                 <div style={{ fontSize: 52 }}>{c.icon}</div>
@@ -580,8 +591,10 @@ const SceneDanger = () => {
   );
 };
 
+// =========修复 ScenePrevent spring补fps=========
 const ScenePrevent = () => {
   const f = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const tips = [
     { n: "01", t: "别让导线直接相连", d: "火线与零线、正负极绝不能直接碰在一起" },
     { n: "02", t: "安装保险装置", d: "保险丝 / 空气开关，电流过大时自动断电" },
@@ -597,7 +610,7 @@ const ScenePrevent = () => {
         </div>
         <div style={{ position: "absolute", top: 340, left: 130, right: 130, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 28 }}>
           {tips.map((tip, i) => {
-            const t = spring({ frame: f - 20 - i * 13, config: { damping: 13, stiffness: 115 } });
+            const t = spring({ frame: f - 20 - i * 13, fps, config: { damping: 13, stiffness: 115 } });
             return (
               <Panel key={tip.n} style={{ padding: "38px 32px", opacity: t, transform: `translateY(${(1 - t) * 56}px)`, textAlign: "center", borderTop: `4px solid ${THEME.good}` }}>
                 <div style={{ width: 76, height: 76, borderRadius: "50%", margin: "0 auto", background: "rgba(63,227,161,0.14)", border: `2px solid ${THEME.good}`, color: THEME.good, fontSize: 32, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
@@ -616,7 +629,6 @@ const ScenePrevent = () => {
   );
 };
 
-// ========== 真正被Composition引用的主视频组件 ==========
 const ShortCircuitVideo = () => {
   const frame = useCurrentFrame();
   const S = (s) => Math.round(s * 30);
@@ -640,7 +652,6 @@ const ShortCircuitVideo = () => {
   );
 };
 
-// ========== RemotionRoot：只放Composition！这里绝对不能写任何useCurrentFrame等钩子 ==========
 const RemotionRoot = () => {
   return (
     <>
