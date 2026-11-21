@@ -1,7 +1,6 @@
 /**
  * 程序化音效：全部用 WebAudio 合成并导出为 WAV data-uri，
- * 无需任何外部音频素材。返回兼容的 data URI，
- * 可直接喂给 <Audio src={...} />。
+ * 无需任何外部音频素材，可直接喂给 <Audio src={...} />。
  */
 let AC = null;
 const getCtx = () => {
