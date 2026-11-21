@@ -6,17 +6,16 @@ import {
   spring,
   useCurrentFrame,
   registerRoot,
+  Composition,
 } from "remotion";
 
-/* ============================================================
-   全局配置 / 主题
-   ============================================================ */
 export const VIDEO_CONFIG = {
   width: 1920,
   height: 1080,
   fps: 30,
   durationInFrames: 1015,
 };
+
 const THEME = {
   bg: "#070b17",
   bg2: "#0c1326",
@@ -53,9 +52,7 @@ const mixHex = (a, b, t) => {
   return `rgb(${r},${g},${bl})`;
 };
 
-/* ============================================================
-   通用小组件
-   ============================================================ */
+// ---------------- 全部小组件（内部会使用useCurrentFrame） ----------------
 const SceneFade = ({ children }) => {
   const f = useCurrentFrame();
   const opacity = interpolate(f, [0, 10], [0, 1], clamp);
@@ -270,9 +267,6 @@ const Backdrop = () => {
   );
 };
 
-/* ============================================================
-   电路几何
-   ============================================================ */
 const GEO = {
   x1: 270, x2: 1030, y1: 230, y2: 560,
   bulbX: 650, swX: 860, bx1: 690, bx2: 990, by: 400,
@@ -315,9 +309,6 @@ const ptAt = (p) => {
   return PATH_LOOP[PATH_LOOP.length - 1];
 };
 
-/* ============================================================
-   电路动画
-   ============================================================ */
 const Electron = ({ x, y, color, r }) => (
   <circle cx={x} cy={y} r={r} fill={color} style={{ filter: `drop-shadow(0 0 ${r * 3}px ${color})` }} />
 );
@@ -435,9 +426,7 @@ const CircuitDemo = ({ shorted }) => {
   );
 };
 
-/* ============================================================
-   全部场景
-   ============================================================ */
+// ---------------- 各个场景组件 ----------------
 const SceneHook = () => {
   const f = useCurrentFrame();
   const ignite = interpolate(f, [40, 52], [0, 1], clamp);
@@ -610,7 +599,7 @@ const ScenePrevent = () => {
           {tips.map((tip, i) => {
             const t = spring({ frame: f - 20 - i * 13, config: { damping: 13, stiffness: 115 } });
             return (
-              <Panel key={tip.n} style={{ padding: "38px 32px", opacity: t, transform: `translateY(${(1 - t) * 56}px)`, textAlign: "center" }}>
+              <Panel key={tip.n} style={{ padding: "38px 32px", opacity: t, transform: `translateY(${(1 - t) * 56}px)`, textAlign: "center", borderTop: `4px solid ${THEME.good}` }}>
                 <div style={{ width: 76, height: 76, borderRadius: "50%", margin: "0 auto", background: "rgba(63,227,161,0.14)", border: `2px solid ${THEME.good}`, color: THEME.good, fontSize: 32, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
                   {tip.n}
                 </div>
@@ -627,9 +616,7 @@ const ScenePrevent = () => {
   );
 };
 
-/* ============================================================
-   主入口，完整闭合
-   ============================================================ */
+// ========== 真正被Composition引用的主视频组件 ==========
 const ShortCircuitVideo = () => {
   const frame = useCurrentFrame();
   const S = (s) => Math.round(s * 30);
@@ -653,4 +640,20 @@ const ShortCircuitVideo = () => {
   );
 };
 
-registerRoot(ShortCircuitVideo);
+// ========== RemotionRoot：只放Composition！这里绝对不能写任何useCurrentFrame等钩子 ==========
+const RemotionRoot = () => {
+  return (
+    <>
+      <Composition
+        id="ShortCircuitVideo"
+        component={ShortCircuitVideo}
+        width={VIDEO_CONFIG.width}
+        height={VIDEO_CONFIG.height}
+        fps={VIDEO_CONFIG.fps}
+        durationInFrames={VIDEO_CONFIG.durationInFrames}
+      />
+    </>
+  );
+};
+
+registerRoot(RemotionRoot);
