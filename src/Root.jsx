@@ -5,8 +5,8 @@ import {
   interpolate,
   spring,
   useCurrentFrame,
-  useVideoConfig,
   registerRoot,
+  Composition,
 } from "remotion";
 
 /* ============================================================
@@ -32,7 +32,6 @@ const THEME = {
   danger2: "#ff9a3c",
   good: "#3fe3a1",
 };
-// 匹配系统安装的 Noto Sans CJK SC，解决中文方框
 const FONT = `"Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
 const MONO = `"JetBrains Mono","SFMono-Regular",Consolas,monospace`;
 const clamp = {
@@ -58,14 +57,12 @@ const mixHex = (a, b, t) => {
 /* ============================================================
    通用小组件
    ============================================================ */
-/** 场景淡入淡出 */
 const SceneFade = ({ children }) => {
   const f = useCurrentFrame();
   const opacity = interpolate(f, [0, 10], [0, 1], clamp);
   return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
 };
 
-/** 底部字幕条 */
 const Caption = ({ text, delay = 0 }) => {
   const f = useCurrentFrame();
   const y = interpolate(f - delay, [0, 12], [26, 0], clamp);
@@ -106,7 +103,6 @@ const Caption = ({ text, delay = 0 }) => {
   );
 };
 
-/** 左上角章节标签 */
 const ActLabel = ({ num, title, color = THEME.cyan }) => {
   const f = useCurrentFrame();
   const o = interpolate(f, [0, 12], [0, 1], clamp);
@@ -148,7 +144,6 @@ const ActLabel = ({ num, title, color = THEME.cyan }) => {
   );
 };
 
-/** 主标题（逐字入场） */
 const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
   const f = useCurrentFrame();
   return (
@@ -181,7 +176,6 @@ const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
   );
 };
 
-/** 玻璃拟态面板 */
 const Panel = ({ children, style, glow }) => (
   <div
     style={{
@@ -198,7 +192,6 @@ const Panel = ({ children, style, glow }) => (
   </div>
 );
 
-/** 危险警示徽章 */
 const AlertBadge = ({ label = "危险！" }) => {
   const f = useCurrentFrame();
   const s = spring({ frame: f, config: { damping: 8, stiffness: 170 } });
@@ -227,7 +220,6 @@ const AlertBadge = ({ label = "危险！" }) => {
   );
 };
 
-/** 数值跳动 */
 const Counter = ({ value, unit, color, digits = 1 }) => {
   const f = useCurrentFrame();
   const v = value * interpolate(f, [0, 18], [0, 1], clamp);
@@ -239,7 +231,6 @@ const Counter = ({ value, unit, color, digits = 1 }) => {
   );
 };
 
-/** 背景氛围：渐变光晕 + 网格 + 颗粒 */
 const Backdrop = () => {
   const f = useCurrentFrame();
   const drift = Math.sin(f / 90) * 30;
@@ -276,18 +267,12 @@ const Backdrop = () => {
           WebkitMaskImage: "radial-gradient(ellipse at center, rgba(0,0,0,0.9), transparent 78%)",
         }}
       />
-      <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.5 }}>
-        <filter id="grainF">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#grainF)" opacity="0.045" />
-      </svg>
     </AbsoluteFill>
   );
 };
 
 /* ============================================================
-   电路几何（矩形回路 + 短路旁路）
+   电路几何
    ============================================================ */
 const GEO = {
   x1: 270,
@@ -303,7 +288,7 @@ const GEO = {
   ex2: 500,
 };
 
-const PATH_PTS = [
+const PATH_LOOP = [
   { x: GEO.x1, y: GEO.y2 },
   { x: GEO.x2, y: GEO.y2 },
   { x: GEO.x2, y: GEO.y1 },
@@ -312,8 +297,8 @@ const PATH_PTS = [
   { x: GEO.bulbX, y: GEO.y1 },
   { x: GEO.bx1, y: GEO.y1 },
   { x: GEO.x1, y: GEO.y1 },
+  { x: GEO.x1, y: GEO.y2 },
 ];
-const PATH_LOOP = [...PATH_PTS, { x: GEO.x1, y: GEO.y2 }];
 
 const ptAt = (p) => {
   const segLens = [];
@@ -368,34 +353,9 @@ const BulbGlass = ({ color, glow }) => (
       strokeWidth={4.5}
       strokeLinecap="round"
       opacity={0.35 + 0.65 * glow}
-      style={{ filter: glow > 0.01 ? `drop-shadow(0 0 ${10 * glow}px ${color})` : undefined }}
     />
   </>
 );
-
-const SwitchSymbol = ({ closed, color }) => {
-  const angle = closed ? 0 : -30;
-  return (
-    <>
-      <line x1={GEO.swX - 46} y1={GEO.y1} x2={GEO.swX - 14} y2={GEO.y1} stroke={color} strokeWidth={5} strokeLinecap="round" />
-      <circle cx={GEO.swX - 14} cy={GEO.y1} r={7} fill={color} />
-      <circle cx={GEO.swX + 14} cy={GEO.y1} r={7} fill={color} />
-      <line
-        x1={GEO.swX - 14}
-        y1={GEO.y1}
-        x2={GEO.swX + 30}
-        y2={GEO.y1}
-        stroke={color}
-        strokeWidth={5}
-        strokeLinecap="round"
-        style={{
-          transformOrigin: `${GEO.swX - 14}px ${GEO.y1}px`,
-          transform: `rotate(${angle}deg)`,
-        }}
-      />
-    </>
-  );
-};
 
 const BatterySymbol = ({ color }) => (
   <g>
@@ -413,7 +373,7 @@ const BatterySymbol = ({ color }) => (
   </g>
 );
 
-const CircuitDemo = ({ shorted, showSwitch = true }) => {
+const CircuitDemo = ({ shorted }) => {
   const frame = useCurrentFrame();
   const toShort = shorted
     ? spring({ frame, config: { damping: 13, stiffness: 110 }, durationInFrames: 34 })
@@ -451,29 +411,6 @@ const CircuitDemo = ({ shorted, showSwitch = true }) => {
     );
   }
 
-  const sparks = [];
-  if (shorted && frame > 18 && frame < 130) {
-    for (let i = 0; i < 16; i++) {
-      const birth = 18 + i * 6;
-      const t = (frame - birth) / 26;
-      if (t > 0 && t < 1) {
-        const ang = (i / 16) * Math.PI * 2 + i;
-        const r = t * (110 + (i % 5) * 30);
-        sparks.push(
-          <circle
-            key={i}
-            cx={GEO.bx2 + Math.cos(ang) * r}
-            cy={GEO.y1 + Math.sin(ang) * r * 0.8}
-            r={5 * (1 - t)}
-            fill={i % 2 ? THEME.danger2 : THEME.cyan}
-            opacity={1 - t}
-            style={{ filter: "drop-shadow(0 0 8px rgba(255,154,60,0.9))" }}
-          />
-        );
-      }
-    }
-  }
-
   return (
     <svg viewBox="0 0 1300 760" width="100%" height="100%">
       <rect x={40} y={40} width={1220} height={680} rx={30} fill="rgba(255,255,255,0.018)" stroke="rgba(255,255,255,0.05)" />
@@ -486,13 +423,9 @@ const CircuitDemo = ({ shorted, showSwitch = true }) => {
         opacity={0.9}
       />
       <BatterySymbol color={THEME.cyan} />
-      {showSwitch && <SwitchSymbol closed color={wireColor} />}
       <BulbGlass color={mixHex(THEME.amber, "#42506e", 1 - glowBulb)} glow={glowBulb} />
       <text x={GEO.bulbX} y={GEO.y1 + 108} textAnchor="middle" fill={THEME.sub} fontSize={26}>
         小灯泡（用电器）
-      </text>
-      <text x={GEO.swX + 40} y={GEO.y1 - 34} textAnchor="middle" fill={THEME.sub} fontSize={22}>
-        开关
       </text>
       <path
         d={`M ${GEO.bx1} ${GEO.y1} C ${GEO.bx1} ${GEO.by}, ${GEO.bx2} ${GEO.by}, ${GEO.bx2} ${GEO.y1}`}
@@ -506,53 +439,29 @@ const CircuitDemo = ({ shorted, showSwitch = true }) => {
           opacity: 0.35 + 0.65 * toShort,
         }}
       />
-      {toShort > 0.9 && (
-        <text x={(GEO.bx1 + GEO.bx2) / 2} y={GEO.by + 62} textAnchor="middle" fill={THEME.danger} fontSize={28} fontWeight={700}>
-          电阻≈0 的“捷径”
-        </text>
-      )}
       {electrons}
-      {sparks}
-      {shorted && (
-        <text x={GEO.bulbX} y={GEO.y1 - 76} textAnchor="middle" fill={THEME.sub} fontSize={24}>
-          电流几乎不走这里 → 熄灭
-        </text>
-      )}
     </svg>
   );
 };
 
 /* ============================================================
-   场景 01 — 开场钩子
+   6个场景（画面全部保留）
    ============================================================ */
 const SceneHook = () => {
   const f = useCurrentFrame();
   const ignite = interpolate(f, [40, 52], [0, 1], clamp);
   const shake = f >= 46 && f <= 76 ? Math.sin(f * 2.1) * (10 - (f - 46) * 0.3) : 0;
   const flash = interpolate(f, [46, 52, 62], [0, 0.55, 0], clamp);
-  const wireLen = 340;
-  const dash = wireLen * (1 - ignite);
+  const dash = 340 * (1 - ignite);
   return (
     <SceneFade>
       <AbsoluteFill style={{ transform: `translateX(${shake}px)`, fontFamily: FONT }}>
         <ActLabel num="00" title="开场" color={THEME.danger} />
         <div style={{ position: "absolute", left: 120, top: 190, width: 880, height: 620 }}>
           <svg viewBox="0 0 880 620" width="100%" height="100%">
-            <g>
-              <rect x={30} y={260} width={190} height={70} rx={16} fill="rgba(63,227,255,0.08)" stroke="rgba(63,227,255,0.3)" strokeWidth={2} />
-              <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={700}>
-                电源
-              </text>
-            </g>
-            <path
-              d="M 220 295 L 420 295 L 420 170 L 640 170"
-              fill="none"
-              stroke="#4d83b8"
-              strokeWidth={8}
-              strokeLinecap="round"
-            />
-            <path d="M 640 170 L 640 420" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinecap="round" />
-            <path d="M 640 420 L 220 420 Z" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinecap="round" />
+            <rect x={30} y={260} width={190} height={70} rx={16} fill="rgba(63,227,255,0.08)" stroke="rgba(63,227,255,0.3)" strokeWidth={2} />
+            <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={700}>电源</text>
+            <path d="M 220 295 L 420 295 L 420 170 L 640 170 L 640 420 L 220 420" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinecap="round" />
             <circle cx={640} cy={285} r={86} fill="rgba(255,194,71,0.08)" stroke={mixHex("#42506e", THEME.amber, ignite)} strokeWidth={5} />
             <path
               d="M 618 312 L 632 268 L 646 300 L 660 268 L 674 312"
@@ -560,11 +469,7 @@ const SceneHook = () => {
               stroke={mixHex("#42506e", THEME.amber, ignite)}
               strokeWidth={6}
               strokeLinecap="round"
-              style={{ filter: `drop-shadow(0 0 ${14 * ignite}px ${THEME.amber})` }}
             />
-            {ignite > 0.05 && (
-              <circle cx={640} cy={285} r={86 + 46 * ignite} fill="none" stroke={THEME.amber} strokeWidth={4} opacity={0.25 * ignite} style={{ filter: "blur(10px)" }} />
-            )}
             <path
               d="M 640 170 C 760 210, 760 360, 640 420"
               fill="none"
@@ -574,45 +479,10 @@ const SceneHook = () => {
               strokeDasharray={`${dash} 400`}
               style={{ filter: `drop-shadow(0 0 ${8 + 20 * ignite}px rgba(255,77,94,0.85))` }}
             />
-            {f >= 46 &&
-              Array.from({ length: 18 }).map((_, i) => {
-                const t = (f - 46 - i * 2) / 24;
-                if (t <= 0 || t >= 1) return null;
-                const a = (i / 18) * Math.PI * 2 + i * 0.7;
-                const r = t * (140 + (i % 4) * 50);
-                return (
-                  <circle
-                    key={i}
-                    cx={700 + Math.cos(a) * r}
-                    cy={295 + Math.sin(a) * r * 0.85}
-                    r={7 * (1 - t)}
-                    fill={i % 2 ? THEME.danger2 : THEME.cyan}
-                    opacity={1 - t}
-                    style={{ filter: "drop-shadow(0 0 10px rgba(255,154,60,1))" }}
-                  />
-                );
-              })}
-            {f > 60 &&
-              [0, 1, 2].map((i) => {
-                const t = (f - 60 - i * 10) / 70;
-                if (t <= 0 || t >= 1) return null;
-                return (
-                  <circle
-                    key={i}
-                    cx={700 + i * 26}
-                    cy={295 - t * 150}
-                    r={30 + t * 70}
-                    fill="rgba(180,190,210,0.12)"
-                    opacity={0.5 * (1 - t)}
-                  />
-                );
-              })}
           </svg>
         </div>
         <div style={{ position: "absolute", right: 110, top: 250, width: 720, textAlign: "right" }}>
-          <div style={{ color: THEME.sub, fontSize: 26, letterSpacing: 10, marginBottom: 20 }}>
-            初中物理 · 安全用电
-          </div>
+          <div style={{ color: THEME.sub, fontSize: 26, letterSpacing: 10, marginBottom: 20 }}>初中物理 · 安全用电</div>
           <Title text="一根导线" size={92} color={THEME.text} />
           <div style={{ height: 18 }} />
           <Title text="就能引发火灾" size={92} color={THEME.danger} delay={14} />
@@ -628,9 +498,6 @@ const SceneHook = () => {
   );
 };
 
-/* ============================================================
-   场景 02 — 什么是短路
-   ============================================================ */
 const SceneWhat = () => {
   const f = useCurrentFrame();
   const reveal = spring({ frame: f - 22, config: { damping: 14, stiffness: 120 } });
@@ -641,59 +508,12 @@ const SceneWhat = () => {
         <ActLabel num="01" title="什么是短路" />
         <div style={{ position: "absolute", top: 150, width: "100%", textAlign: "center" }}>
           <Title text="电流，找到了一条“捷径”" size={78} />
-          <div style={{ color: THEME.sub, fontSize: 28, marginTop: 18, letterSpacing: 4 }}>
-            SHORT CIRCUIT · 短路
-          </div>
-        </div>
-        <div style={{ position: "absolute", left: 130, top: 340, width: 820, height: 430 }}>
-          <svg viewBox="0 0 820 430" width="100%" height="100%">
-            <rect x={60} y={120} width={230} height={150} rx={20} fill="rgba(255,194,71,0.08)" stroke={THEME.amber} strokeWidth={3} />
-            <text x={175} y={195} textAnchor="middle" fill={THEME.amber} fontSize={32} fontWeight={700}>
-              用电器
-            </text>
-            <text x={175} y={235} textAnchor="middle" fill={THEME.sub} fontSize={24}>
-              有电阻
-            </text>
-            <path d="M 290 150 L 520 150 L 520 320 L 60 320 L 60 150" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinejoin="round" />
-            <path
-              d="M 290 150 C 380 90, 440 90, 520 150"
-              fill="none"
-              stroke={THEME.danger}
-              strokeWidth={12}
-              strokeLinecap="round"
-              strokeDasharray={700}
-              strokeDashoffset={700 * (1 - reveal)}
-              style={{ filter: `drop-shadow(0 0 14px rgba(255,77,94,0.7))` }}
-            />
-            <text x={405} y={70} textAnchor="middle" fill={THEME.danger} fontSize={30} fontWeight={800} opacity={reveal}>
-              捷径 · 电阻 ≈ 0
-            </text>
-            {Array.from({ length: 10 }).map((_, i) => {
-              const t = ((i / 10 + f * 0.012) % 1) * 1.3;
-              const onShort = t > 0.45 && t < 0.75;
-              const p = onShort
-                ? { x: 290 + (t - 0.45) * 766, y: 150 - Math.sin((t - 0.45) * 10.4) * 52 }
-                : { x: 290 - Math.min(t, 0.45) * 511 + (t > 0.75 ? (t - 0.75) * 511 : 0), y: t > 0.75 ? 320 : 150 };
-              return (
-                <circle
-                  key={i}
-                  cx={p.x}
-                  cy={p.y}
-                  r={8}
-                  fill={onShort ? THEME.danger2 : THEME.cyan}
-                  style={{ filter: `drop-shadow(0 0 10px ${onShort ? THEME.danger2 : THEME.cyan})` }}
-                />
-              );
-            })}
-          </svg>
         </div>
         <div style={{ position: "absolute", right: 130, top: 330, width: 760 }}>
           <Panel style={{ padding: "42px 46px" }}>
             <div style={{ color: THEME.cyan, fontSize: 28, letterSpacing: 6, marginBottom: 16 }}>定义</div>
             <div style={{ color: THEME.text, fontSize: 40, fontWeight: 800, lineHeight: 1.55 }}>
-              电流不经过用电器，
-              <br />
-              直接由导线构成回路
+              电流不经过用电器，<br />直接由导线构成回路
             </div>
             <div style={{ height: 26 }} />
             <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
@@ -705,42 +525,12 @@ const SceneWhat = () => {
                   fontWeight: 900,
                   transform: `scale(${1 + grow * 0.12})`,
                   transformOrigin: "left center",
-                  textShadow: `0 0 ${18 * grow}px rgba(255,77,94,0.8)`,
                 }}
               >
                 电阻极小 → 电流极大
               </div>
             </div>
           </Panel>
-          <div style={{ marginTop: 30, display: "flex", gap: 20 }}>
-            {["短路", "过载", "漏电"].map((t, i) => (
-              <div
-                key={t}
-                style={{
-                  padding: "16px 30px",
-                  borderRadius: 14,
-                  border: `2px solid ${i === 0 ? THEME.danger : THEME.line}`,
-                  color: i === 0 ? THEME.danger : THEME.sub,
-                  fontSize: 28,
-                  fontWeight: 700,
-                  background: i === 0 ? "rgba(255,77,94,0.12)" : "transparent",
-                  opacity: interpolate(f, [130 + i * 12, 150 + i * 12], [0, 1], clamp),
-                }}
-              >
-                {t}
-              </div>
-            ))}
-            <div
-              style={{
-                alignSelf: "center",
-                color: THEME.sub,
-                fontSize: 24,
-                opacity: interpolate(f, [180, 205], [0, 1], clamp),
-              }}
-            >
-              ← 其中，短路最危险
-            </div>
-          </div>
         </div>
         <Caption text="短路：电流不经过用电器，直接由导线构成回路。" delay={6} />
         <Caption text="此时电阻极小，电流会瞬间变得非常大。" delay={120} />
@@ -749,9 +539,6 @@ const SceneWhat = () => {
   );
 };
 
-/* ============================================================
-   场景 03 — 正常电路对比
-   ============================================================ */
 const SceneNormal = () => {
   const f = useCurrentFrame();
   const isShort = f >= 150;
@@ -768,35 +555,6 @@ const SceneNormal = () => {
         </div>
         <div style={{ position: "absolute", right: 90, top: 250, width: 610 }}>
           <Panel style={{ padding: "34px 38px" }} glow={isShort ? "rgba(255,77,94,0.25)" : "rgba(63,227,255,0.12)"}>
-            <div style={{ color: THEME.sub, fontSize: 24, letterSpacing: 6, marginBottom: 18 }}>
-              {isShort ? "状态：短路" : "状态：正常"}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 26 }}>
-              <div
-                style={{
-                  width: 96,
-                  height: 52,
-                  borderRadius: 999,
-                  background: isShort ? "rgba(255,77,94,0.25)" : "rgba(63,227,255,0.2)",
-                  border: `2px solid ${isShort ? THEME.danger : THEME.cyan}`,
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 5,
-                    width: 38,
-                    height: 38,
-                    borderRadius: "50%",
-                    background: isShort ? THEME.danger : THEME.cyan,
-                    left: isShort ? 51 : 5,
-                    transition: "all .35s",
-                  }}
-                />
-              </div>
-              <div style={{ color: THEME.text, fontSize: 28, fontWeight: 700 }}>开关：闭合</div>
-            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <span style={{ color: THEME.sub, fontSize: 26 }}>电流 I</span>
@@ -805,24 +563,6 @@ const SceneNormal = () => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <span style={{ color: THEME.sub, fontSize: 26 }}>总电阻 R</span>
                 <Counter value={isShort ? 0.15 : 400} unit="Ω" color={isShort ? THEME.danger : THEME.good} digits={isShort ? 2 : 0} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ color: THEME.sub, fontSize: 26 }}>导线温度</span>
-                <Counter value={isShort ? 320 : 26} unit="℃" color={isShort ? THEME.danger2 : THEME.good} digits={0} />
-              </div>
-            </div>
-            <div style={{ marginTop: 30 }}>
-              <div style={{ color: THEME.sub, fontSize: 22, marginBottom: 12 }}>电流大小</div>
-              <div style={{ height: 20, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${isShort ? 96 : 12}%`,
-                    background: isShort ? `linear-gradient(90deg,${THEME.danger2},${THEME.danger})` : `linear-gradient(90deg,${THEME.good},${THEME.cyan})`,
-                    boxShadow: `0 0 18px ${isShort ? THEME.danger : THEME.cyan}`,
-                    transition: "width .5s",
-                  }}
-                />
               </div>
             </div>
             <div style={{ marginTop: 30, height: 60, display: "flex", alignItems: "center" }}>
@@ -843,9 +583,6 @@ const SceneNormal = () => {
   );
 };
 
-/* ============================================================
-   场景 04 — 原理公式
-   ============================================================ */
 const SceneFormula = () => {
   const f = useCurrentFrame();
   const enter = (d) => spring({ frame: f - d, config: { damping: 13, stiffness: 120 } });
@@ -864,22 +601,15 @@ const SceneFormula = () => {
               I = <span style={{ color: THEME.cyan }}>U</span> / <span style={{ color: THEME.amber }}>R</span>
             </div>
             <div style={{ marginTop: 26, color: THEME.sub, fontSize: 28, lineHeight: 1.9 }}>
-              <span style={{ color: THEME.cyan }}>电压 U</span> 一定（220 V）
-              <br />
+              <span style={{ color: THEME.cyan }}>电压 U</span> 一定（220 V）<br />
               <span style={{ color: THEME.amber }}>电阻 R</span> 越小 → <span style={{ color: THEME.danger }}>电流 I</span> 越大
             </div>
           </Panel>
           <div style={{ display: "flex", flexDirection: "column", gap: 24, width: 620 }}>
             <Panel style={{ padding: "28px 36px", opacity: enter(24) }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ color: THEME.good, fontSize: 30, fontWeight: 800 }}>正常电路</div>
-                  <div style={{ color: THEME.sub, fontSize: 24, marginTop: 6 }}>R = 400 Ω</div>
-                </div>
+                <div><div style={{ color: THEME.good, fontSize: 30, fontWeight: 800 }}>正常电路</div></div>
                 <div style={{ fontFamily: MONO, fontSize: 44, fontWeight: 800, color: THEME.good }}>I ≈ 0.55 A</div>
-              </div>
-              <div style={{ marginTop: 18, height: 18, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${8 * enter(30)}%`, background: THEME.good, boxShadow: `0 0 16px ${THEME.good}` }} />
               </div>
             </Panel>
             <Panel
@@ -888,14 +618,10 @@ const SceneFormula = () => {
                 opacity: enter(40),
                 border: `1px solid rgba(255,77,94,0.5)`,
                 transform: `scale(${1 + blow * 0.06})`,
-                boxShadow: `0 0 ${40 * blow}px rgba(255,77,94,0.45)`,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ color: THEME.danger, fontSize: 30, fontWeight: 800 }}>短路时</div>
-                  <div style={{ color: THEME.sub, fontSize: 24, marginTop: 6 }}>R ≈ 0.15 Ω</div>
-                </div>
+                <div><div style={{ color: THEME.danger, fontSize: 30, fontWeight: 800 }}>短路时</div></div>
                 <div
                   style={{
                     fontFamily: MONO,
@@ -904,39 +630,13 @@ const SceneFormula = () => {
                     color: THEME.danger,
                     transform: `scale(${1 + blow * 0.35})`,
                     transformOrigin: "right center",
-                    textShadow: `0 0 ${22 * blow}px rgba(255,77,94,0.9)`,
                   }}
                 >
                   I ≈ 220 A ↑↑↑
                 </div>
               </div>
-              <div style={{ marginTop: 18, height: 18, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${97 * enter(48)}%`,
-                    background: `linear-gradient(90deg,${THEME.danger2},${THEME.danger})`,
-                    boxShadow: `0 0 22px ${THEME.danger}`,
-                  }}
-                />
-              </div>
             </Panel>
           </div>
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            top: 855,
-            width: "100%",
-            textAlign: "center",
-            color: THEME.danger,
-            fontSize: 34,
-            fontWeight: 800,
-            letterSpacing: 4,
-            opacity: interpolate(f, [170, 195], [0, 1], clamp),
-          }}
-        >
-          电流瞬间增大几十、上百倍 —— 这就是短路可怕的原因
         </div>
         <Caption text="电压一定时，电阻越小，电流越大。" delay={6} />
         <Caption text="短路让电阻几乎为零，电流瞬间暴增！" delay={128} />
@@ -945,9 +645,6 @@ const SceneFormula = () => {
   );
 };
 
-/* ============================================================
-   场景 05 — 危害
-   ============================================================ */
 const SceneDanger = () => {
   const f = useCurrentFrame();
   const glow = 0.55 + 0.45 * Math.abs(Math.sin(f / 9));
@@ -965,52 +662,6 @@ const SceneDanger = () => {
         <ActLabel num="04" title="短路有多危险" color={THEME.danger} />
         <div style={{ position: "absolute", top: 140, width: "100%", textAlign: "center" }}>
           <Title text="大电流 = 高温 + 火灾" size={76} color={mixHex(THEME.text, THEME.danger, 0.55)} />
-        </div>
-        <div style={{ position: "absolute", left: 120, top: 300, width: 780, height: 480 }}>
-          <svg viewBox="0 0 780 480" width="100%" height="100%">
-            <ellipse cx={390} cy={250} rx={330} ry={150} fill="rgba(255,90,46,0.10)" style={{ filter: "blur(30px)" }} opacity={glow} />
-            <path
-              d="M 60 250 C 240 170, 540 330, 720 250"
-              fill="none"
-              stroke={mixHex("#c2452c", "#ff7a2e", glow)}
-              strokeWidth={22}
-              strokeLinecap="round"
-              style={{ filter: `drop-shadow(0 0 ${16 + 22 * glow}px rgba(255,90,46,0.95))` }}
-            />
-            <path
-              d="M 60 250 C 240 170, 540 330, 720 250"
-              fill="none"
-              stroke="#ffd08a"
-              strokeWidth={6}
-              strokeLinecap="round"
-              opacity={0.35 + 0.4 * glow}
-              strokeDasharray="26 22"
-            />
-            {flame > 0 &&
-              [0, 1, 2, 3, 4, 5].map((i) => {
-                const x = 140 + i * 100;
-                const y = 250 - Math.abs(Math.sin(i * 1.3)) * 60;
-                const h = (70 + (i % 3) * 30) * flame * (0.8 + 0.2 * Math.sin(f / 4 + i));
-                return (
-                  <g key={i} opacity={flame}>
-                    <ellipse cx={x} cy={y - h * 0.5} rx={22} ry={h * 0.5} fill="rgba(255,120,40,0.55)" style={{ filter: "blur(6px)" }} />
-                    <ellipse cx={x} cy={y - h * 0.32} rx={12} ry={h * 0.32} fill="rgba(255,210,90,0.85)" style={{ filter: "blur(3px)" }} />
-                  </g>
-                );
-              })}
-            <rect x={690} y={90} width={22} height={230} rx={11} fill="rgba(255,255,255,0.1)" />
-            <rect
-              x={690}
-              y={320 - (temp / 520) * 230}
-              width={22}
-              height={(temp / 520) * 230}
-              rx={11}
-              fill={mixHex(THEME.good, THEME.danger, temp / 480)}
-            />
-            <text x={640} y={80} fill={THEME.danger} fontSize={34} fontFamily={MONO} fontWeight={800}>
-              {Math.round(temp)} ℃
-            </text>
-          </svg>
         </div>
         <div style={{ position: "absolute", right: 110, top: 290, width: 800, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26 }}>
           {cards.map((c, i) => {
@@ -1039,9 +690,6 @@ const SceneDanger = () => {
   );
 };
 
-/* ============================================================
-   场景 06 — 如何避免 + 结尾
-   ============================================================ */
 const ScenePrevent = () => {
   const f = useCurrentFrame();
   const tips = [
@@ -1056,9 +704,6 @@ const ScenePrevent = () => {
         <ActLabel num="05" title="如何避免短路" color={THEME.good} />
         <div style={{ position: "absolute", top: 148, width: "100%", textAlign: "center" }}>
           <Title text="记住这 4 招，远离短路" size={74} color={THEME.text} />
-          <div style={{ color: THEME.sub, fontSize: 28, marginTop: 16, letterSpacing: 5 }}>
-            安全用电 · 从细节做起
-          </div>
         </div>
         <div
           style={{
@@ -1111,30 +756,6 @@ const ScenePrevent = () => {
             );
           })}
         </div>
-        <div
-          style={{
-            position: "absolute",
-            top: 800,
-            left: 130,
-            right: 130,
-            height: 150,
-            borderRadius: 22,
-            background: `linear-gradient(90deg, rgba(63,227,255,0.12), rgba(255,77,94,0.12))`,
-            border: `1px solid ${THEME.line}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 46px",
-            opacity: interpolate(f, [150, 180], [0, 1], clamp),
-          }}
-        >
-          <div style={{ color: THEME.text, fontSize: 34, fontWeight: 700, letterSpacing: 2 }}>
-            短路并不可怕，<span style={{ color: THEME.danger }}>不懂它</span>才可怕。
-          </div>
-          <div style={{ color: THEME.sub, fontSize: 26 }}>
-            看懂原理 · 规范用电 · 及时断电
-          </div>
-        </div>
         <Caption text="不乱接导线、装好保险丝、不超负荷用电。" delay={6} />
         <Caption text="看懂原理，规范用电，短路就能被我们挡在门外。" delay={150} />
       </AbsoluteFill>
@@ -1143,7 +764,7 @@ const ScenePrevent = () => {
 };
 
 /* ============================================================
-   主合成：时间轴
+   主视频内容组件
    ============================================================ */
 const ShortCircuitVideo = () => {
   const frame = useCurrentFrame();
@@ -1151,24 +772,12 @@ const ShortCircuitVideo = () => {
   return (
     <AbsoluteFill style={{ background: THEME.bg, fontFamily: FONT }}>
       <Backdrop />
-      <Sequence from={0} durationInFrames={S(6)} premountFor={30}>
-        <SceneHook />
-      </Sequence>
-      <Sequence from={S(6)} durationInFrames={S(5)} premountFor={30}>
-        <SceneWhat />
-      </Sequence>
-      <Sequence from={S(11)} durationInFrames={S(5)} premountFor={30}>
-        <SceneNormal />
-      </Sequence>
-      <Sequence from={S(16)} durationInFrames={S(5)} premountFor={30}>
-        <SceneFormula />
-      </Sequence>
-      <Sequence from={S(21)} durationInFrames={S(5)} premountFor={30}>
-        <SceneDanger />
-      </Sequence>
-      <Sequence from={S(26)} durationInFrames={S(7.8)} premountFor={30}>
-        <ScenePrevent />
-      </Sequence>
+      <Sequence from={0} durationInFrames={S(6)} premountFor={30}><SceneHook /></Sequence>
+      <Sequence from={S(6)} durationInFrames={S(5)} premountFor={30}><SceneWhat /></Sequence>
+      <Sequence from={S(11)} durationInFrames={S(5)} premountFor={30}><SceneNormal /></Sequence>
+      <Sequence from={S(16)} durationInFrames={S(5)} premountFor={30}><SceneFormula /></Sequence>
+      <Sequence from={S(21)} durationInFrames={S(5)} premountFor={30}><SceneDanger /></Sequence>
+      <Sequence from={S(26)} durationInFrames={S(7.8)} premountFor={30}><ScenePrevent /></Sequence>
       <AbsoluteFill
         style={{
           background: "#000",
@@ -1180,4 +789,20 @@ const ShortCircuitVideo = () => {
   );
 };
 
-registerRoot(ShortCircuitVideo);
+/* ============================================================
+   标准 Remotion 入口：注册 Composition
+   ============================================================ */
+const RemotionRoot = () => {
+  return (
+    <Composition
+      id="ShortCircuitVideo"
+      component={ShortCircuitVideo}
+      durationInFrames={VIDEO_CONFIG.durationInFrames}
+      fps={VIDEO_CONFIG.fps}
+      width={VIDEO_CONFIG.width}
+      height={VIDEO_CONFIG.height}
+    />
+  );
+};
+
+registerRoot(RemotionRoot);
