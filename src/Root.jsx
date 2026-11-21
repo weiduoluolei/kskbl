@@ -44,7 +44,7 @@ const FONT_LATIN = '"Cormorant Garamond", "Noto Serif SC", serif';
 // 把 public/music.mp3 放好之后，改成 true 即可带上音乐
 const MUSIC_ENABLED = false;
 
-const CLAMP = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
+const CLAMP = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'};
 
 /* ========================= 字体 ========================= */
 
@@ -55,7 +55,7 @@ const FONT_CSS =
   '&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600' +
   '&display=swap';
 
-const loadFonts = (): void => {
+const loadFonts = () => {
   if (typeof document === 'undefined') return;
   const handle = delayRender('Loading webfonts');
   const done = () => continueRender(handle);
@@ -86,19 +86,7 @@ const loadFonts = (): void => {
 
 /* ========================= 文案数据 ========================= */
 
-type Point = {year: string; head: string; desc: string; sub: string};
-type Chapter = {
-  cn: string;
-  latin: string;
-  short: string;
-  title: string;
-  era: string;
-  lead: string;
-  accent: string;
-  points: Point[];
-};
-
-const CHAPTERS: Chapter[] = [
+const CHAPTERS = [
   {
     cn: '一',
     latin: 'THE PALEOLITHIC',
@@ -308,8 +296,8 @@ const CHAPTERS: Chapter[] = [
 
 /* ========================= 背景 / 颗粒 / 时间轴 ========================= */
 const buildAccentKeys = () => {
-  const frames: number[] = [];
-  const colors: string[] = [];
+  const frames = [];
+  const colors = [];
   const list = [
     {start: 0, end: INTRO_DUR, color: INTRO_ACCENT},
     ...CHAPTERS.map((c, i) => ({
@@ -328,7 +316,7 @@ const buildAccentKeys = () => {
 
 const ACCENT_KEYS = buildAccentKeys();
 
-const Background: React.FC = () => {
+const Background = () => {
   const frame = useCurrentFrame();
   const accent = interpolateColors(frame, ACCENT_KEYS.frames, ACCENT_KEYS.colors);
   const stars = useMemo(
@@ -396,7 +384,7 @@ const Background: React.FC = () => {
 const NOISE =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='260' height='260' filter='url(%23n)' opacity='0.55'/></svg>";
 
-const Grain: React.FC = () => (
+const Grain = () => (
   <AbsoluteFill
     style={{
       backgroundImage: `url("${NOISE}")`,
@@ -408,7 +396,7 @@ const Grain: React.FC = () => (
   />
 );
 
-const Timeline: React.FC = () => {
+const Timeline = () => {
   const frame = useCurrentFrame();
   const progress = frame / TOTAL_DURATION;
   const trackLeft = 100;
@@ -507,7 +495,7 @@ const Timeline: React.FC = () => {
 };
 
 /* ========================= 通用组件 ========================= */
-const Sweep: React.FC = () => {
+const Sweep = () => {
   const frame = useCurrentFrame();
   const x = interpolate(frame, [0, 50], [-1500, 2500], CLAMP);
   const opacity = interpolate(frame, [0, 6, 32, 50], [0, 0.45, 0.3, 0], CLAMP);
@@ -530,11 +518,7 @@ const Sweep: React.FC = () => {
   );
 };
 
-const Reveal: React.FC<{delay: number; children: React.ReactNode; style?: React.CSSProperties}> = ({
-  delay,
-  children,
-  style,
-}) => {
+const Reveal = ({delay, children, style}) => {
   const frame = useCurrentFrame();
   const t = interpolate(frame - delay, [0, 30], [0, 1], {...CLAMP, easing: Easing.out(Easing.cubic)});
   return (
@@ -542,12 +526,7 @@ const Reveal: React.FC<{delay: number; children: React.ReactNode; style?: React.
   );
 };
 
-const PointItem: React.FC<{
-  point: Point;
-  delay: number;
-  accent: string;
-  style: React.CSSProperties;
-}> = ({point, delay, accent, style}) => {
+const PointItem = ({point, delay, accent, style}) => {
   const frame = useCurrentFrame();
   const t = interpolate(frame - delay, [0, 30], [0, 1], {...CLAMP, easing: Easing.out(Easing.cubic)});
   return (
@@ -599,11 +578,7 @@ const PointItem: React.FC<{
   );
 };
 
-const SubtitleBar: React.FC<{
-  items: {start: number; text: string}[];
-  fadeAt: number;
-  accent: string;
-}> = ({items, fadeAt, accent}) => {
+const SubtitleBar = ({items, fadeAt, accent}) => {
   const frame = useCurrentFrame();
   return (
     <div style={{position: 'absolute', left: 0, right: 0, bottom: 92, height: 80}}>
@@ -639,7 +614,7 @@ const SubtitleBar: React.FC<{
 /* ========================= 片头 ========================= */
 const TITLE = '人类发展史';
 
-const Intro: React.FC = () => {
+const Intro = () => {
   const frame = useCurrentFrame();
   const ruleWidth = interpolate(frame, [46, 92], [0, 560], {
     ...CLAMP,
@@ -736,11 +711,7 @@ const POSITIONS = [
   {left: 1050, top: 620},
 ];
 
-const ChapterScene: React.FC<{chapter: Chapter; duration: number; index: number}> = ({
-  chapter,
-  duration,
-  index,
-}) => {
+const ChapterScene = ({chapter, duration, index}) => {
   const frame = useCurrentFrame();
   const interval = Math.round((duration - 130) / chapter.points.length);
   const starts = chapter.points.map((_, i) => 46 + i * interval);
@@ -859,7 +830,7 @@ const ChapterScene: React.FC<{chapter: Chapter; duration: number; index: number}
 };
 
 /* ========================= 片尾 ========================= */
-const Outro: React.FC = () => {
+const Outro = () => {
   const frame = useCurrentFrame();
   const ruleWidth = interpolate(frame, [40, 86], [0, 520], {
     ...CLAMP,
@@ -937,7 +908,7 @@ const Outro: React.FC = () => {
 };
 
 /* ========================= 主合成 ========================= */
-const HumanHistory: React.FC = () => (
+const HumanHistory = () => (
   <AbsoluteFill style={{backgroundColor: COLORS.bg, fontFamily: FONT_BODY, color: COLORS.text}}>
     <Background />
 
@@ -980,7 +951,7 @@ const HumanHistory: React.FC = () => (
 
 /* ========================= 注册 ========================= */
 // loadFonts(); // 已注释，避免GitHub云端加载谷歌字体超时
-const Root: React.FC = () => (
+const Root = () => (
   <Composition
     id="HumanHistory"
     component={HumanHistory}
