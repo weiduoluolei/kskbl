@@ -9,7 +9,6 @@ import {
   useVideoConfig,
   registerRoot,
 } from "remotion";
-// 注意：如果你的项目没有 ./sounds.js 音效文件，注释掉这一行以及所有Audio音效调用
 import {
   sndAlarm,
   sndClick,
@@ -43,16 +42,16 @@ const THEME = {
   danger2: "#ff9a3c",
   good: "#3fe3a1",
 };
-// ✅ 匹配系统安装的 Noto Sans CJK SC，解决中文方框
+// 匹配系统安装的 Noto Sans CJK SC，解决中文方框
 const FONT = `"Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
 const MONO = `"JetBrains Mono","SFMono-Regular",Consolas,monospace`;
 const clamp = {
   extrapolateLeft: "clamp",
   extrapolateRight: "clamp",
-} as const;
+};
 
-const mixHex = (a: string, b: string, t: number) => {
-  const p = (h: string) => [
+const mixHex = (a, b, t) => {
+  const p = (h) => [
     parseInt(h.slice(1, 3), 16),
     parseInt(h.slice(3, 5), 16),
     parseInt(h.slice(5, 7), 16),
@@ -70,14 +69,14 @@ const mixHex = (a: string, b: string, t: number) => {
    通用小组件
    ============================================================ */
 /** 场景淡入淡出 */
-const SceneFade: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const SceneFade = ({ children }) => {
   const f = useCurrentFrame();
   const opacity = interpolate(f, [0, 10], [0, 1], clamp);
   return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
 };
 
 /** 底部字幕条 */
-const Caption: React.FC<{ text: string; delay?: number }> = ({ text, delay = 0 }) => {
+const Caption = ({ text, delay = 0 }) => {
   const f = useCurrentFrame();
   const y = interpolate(f - delay, [0, 12], [26, 0], clamp);
   const o = interpolate(f - delay, [0, 12], [0, 1], clamp);
@@ -118,11 +117,7 @@ const Caption: React.FC<{ text: string; delay?: number }> = ({ text, delay = 0 }
 };
 
 /** 左上角章节标签 */
-const ActLabel: React.FC<{ num: string; title: string; color?: string }> = ({
-  num,
-  title,
-  color = THEME.cyan,
-}) => {
+const ActLabel = ({ num, title, color = THEME.cyan }) => {
   const f = useCurrentFrame();
   const o = interpolate(f, [0, 12], [0, 1], clamp);
   const x = interpolate(f, [0, 14], [-24, 0], clamp);
@@ -164,12 +159,7 @@ const ActLabel: React.FC<{ num: string; title: string; color?: string }> = ({
 };
 
 /** 主标题（逐字入场） */
-const Title: React.FC<{ text: string; size?: number; color?: string; delay?: number }> = ({
-  text,
-  size = 86,
-  color = THEME.text,
-  delay = 0,
-}) => {
+const Title = ({ text, size = 86, color = THEME.text, delay = 0 }) => {
   const f = useCurrentFrame();
   return (
     <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
@@ -202,11 +192,7 @@ const Title: React.FC<{ text: string; size?: number; color?: string; delay?: num
 };
 
 /** 玻璃拟态面板 */
-const Panel: React.FC<{
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-  glow?: string;
-}> = ({ children, style, glow }) => (
+const Panel = ({ children, style, glow }) => (
   <div
     style={{
       background: `linear-gradient(155deg, ${THEME.panel} 0%, ${THEME.panel2} 100%)`,
@@ -223,7 +209,7 @@ const Panel: React.FC<{
 );
 
 /** 危险警示徽章 */
-const AlertBadge: React.FC<{ label?: string }> = ({ label = "危险！" }) => {
+const AlertBadge = ({ label = "危险！" }) => {
   const f = useCurrentFrame();
   const s = spring({ frame: f, config: { damping: 8, stiffness: 170 } });
   const pulse = 0.55 + 0.45 * Math.abs(Math.sin(f / 7));
@@ -252,12 +238,7 @@ const AlertBadge: React.FC<{ label?: string }> = ({ label = "危险！" }) => {
 };
 
 /** 数值跳动 */
-const Counter: React.FC<{ value: number; unit: string; color: string; digits?: number }> = ({
-  value,
-  unit,
-  color,
-  digits = 1,
-}) => {
+const Counter = ({ value, unit, color, digits = 1 }) => {
   const f = useCurrentFrame();
   const v = value * interpolate(f, [0, 18], [0, 1], clamp);
   return (
@@ -269,7 +250,7 @@ const Counter: React.FC<{ value: number; unit: string; color: string; digits?: n
 };
 
 /** 背景氛围：渐变光晕 + 网格 + 颗粒 */
-const Backdrop: React.FC = () => {
+const Backdrop = () => {
   const f = useCurrentFrame();
   const drift = Math.sin(f / 90) * 30;
   return (
@@ -319,20 +300,20 @@ const Backdrop: React.FC = () => {
    电路几何（矩形回路 + 短路旁路）
    ============================================================ */
 const GEO = {
-  x1: 270, // 左导线
-  x2: 1030, // 右导线
-  y1: 230, // 上导线
-  y2: 560, // 下导线
-  bulbX: 650, // 灯泡
-  swX: 860, // 开关
-  bx1: 690, // 短路旁路
+  x1: 270,
+  x2: 1030,
+  y1: 230,
+  y2: 560,
+  bulbX: 650,
+  swX: 860,
+  bx1: 690,
   bx2: 990,
   by: 400,
-  ex1: 350, // 电池
+  ex1: 350,
   ex2: 500,
 };
-type Pt = { x: number; y: number };
-const PATH_PTS: Pt[] = [
+
+const PATH_PTS = [
   { x: GEO.x1, y: GEO.y2 },
   { x: GEO.x2, y: GEO.y2 },
   { x: GEO.x2, y: GEO.y1 },
@@ -342,10 +323,10 @@ const PATH_PTS: Pt[] = [
   { x: GEO.bx1, y: GEO.y1 },
   { x: GEO.x1, y: GEO.y1 },
 ];
-const PATH_LOOP: Pt[] = [...PATH_PTS, { x: GEO.x1, y: GEO.y2 }];
+const PATH_LOOP = [...PATH_PTS, { x: GEO.x1, y: GEO.y2 }];
 
-const ptAt = (p: number): Pt => {
-  const segLens: number[] = [];
+const ptAt = (p) => {
+  const segLens = [];
   let total = 0;
   for (let i = 0; i < PATH_LOOP.length - 1; i++) {
     const a = PATH_LOOP[i];
@@ -371,16 +352,11 @@ const ptAt = (p: number): Pt => {
 /* ============================================================
    电路动画
    ============================================================ */
-const Electron: React.FC<{ x: number; y: number; color: string; r: number }> = ({
-  x,
-  y,
-  color,
-  r,
-}) => (
+const Electron = ({ x, y, color, r }) => (
   <circle cx={x} cy={y} r={r} fill={color} style={{ filter: `drop-shadow(0 0 ${r * 3}px ${color})` }} />
 );
 
-const BulbGlass: React.FC<{ color: string; glow: number }> = ({ color, glow }) => (
+const BulbGlass = ({ color, glow }) => (
   <>
     <circle cx={GEO.bulbX} cy={GEO.y1} r={54} fill="rgba(255,255,255,0.045)" stroke={color} strokeWidth={4} />
     {glow > 0.01 && (
@@ -407,7 +383,7 @@ const BulbGlass: React.FC<{ color: string; glow: number }> = ({ color, glow }) =
   </>
 );
 
-const SwitchSymbol: React.FC<{ closed: boolean; color: string }> = ({ closed, color }) => {
+const SwitchSymbol = ({ closed, color }) => {
   const angle = closed ? 0 : -30;
   return (
     <>
@@ -431,7 +407,7 @@ const SwitchSymbol: React.FC<{ closed: boolean; color: string }> = ({ closed, co
   );
 };
 
-const BatterySymbol: React.FC<{ color: string }> = ({ color }) => (
+const BatterySymbol = ({ color }) => (
   <g>
     <rect x={GEO.ex1 - 60} y={GEO.y2 - 26} width={GEO.ex2 - GEO.ex1 + 120} height={52} rx={12} fill="rgba(63,227,255,0.06)" stroke="rgba(63,227,255,0.22)" strokeWidth={2} />
     <line x1={GEO.ex1} y1={GEO.y2 - 30} x2={GEO.ex1} y2={GEO.y2 + 30} stroke={color} strokeWidth={7} strokeLinecap="round" />
@@ -447,10 +423,7 @@ const BatterySymbol: React.FC<{ color: string }> = ({ color }) => (
   </g>
 );
 
-const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
-  shorted,
-  showSwitch = true,
-}) => {
+const CircuitDemo = ({ shorted, showSwitch = true }) => {
   const frame = useCurrentFrame();
   const toShort = shorted
     ? spring({ frame, config: { damping: 13, stiffness: 110 }, durationInFrames: 34 })
@@ -459,7 +432,7 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
   const wireColor = mixHex("#4d83b8", "#ff5a2e", heat);
   const glowBulb = shorted ? interpolate(frame, [0, 26], [1, 0], clamp) : 1;
   const bypassDash = 360 * (1 - toShort);
-  // 电子流动
+
   const speed = shorted ? 0.026 : 0.0075;
   const eCount = shorted ? 26 : 18;
   const electrons = [];
@@ -487,7 +460,7 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
       />
     );
   }
-  // 火花
+
   const sparks = [];
   if (shorted && frame > 18 && frame < 130) {
     for (let i = 0; i < 16; i++) {
@@ -510,11 +483,10 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
       }
     }
   }
+
   return (
     <svg viewBox="0 0 1300 760" width="100%" height="100%">
-      {/* 底盘 */}
       <rect x={40} y={40} width={1220} height={680} rx={30} fill="rgba(255,255,255,0.018)" stroke="rgba(255,255,255,0.05)" />
-      {/* 主回路导线 */}
       <path
         d={`M ${GEO.x1} ${GEO.y2} L ${GEO.x2} ${GEO.y2} L ${GEO.x2} ${GEO.y1} L ${GEO.x1} ${GEO.y1} Z`}
         fill="none"
@@ -523,7 +495,6 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
         strokeLinejoin="round"
         opacity={0.9}
       />
-      {/* 元件 */}
       <BatterySymbol color={THEME.cyan} />
       {showSwitch && <SwitchSymbol closed color={wireColor} />}
       <BulbGlass color={mixHex(THEME.amber, "#42506e", 1 - glowBulb)} glow={glowBulb} />
@@ -533,7 +504,6 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
       <text x={GEO.swX + 40} y={GEO.y1 - 34} textAnchor="middle" fill={THEME.sub} fontSize={22}>
         开关
       </text>
-      {/* 短路旁路导线 */}
       <path
         d={`M ${GEO.bx1} ${GEO.y1} C ${GEO.bx1} ${GEO.by}, ${GEO.bx2} ${GEO.by}, ${GEO.bx2} ${GEO.y1}`}
         fill="none"
@@ -551,11 +521,8 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
           电阻≈0 的“捷径”
         </text>
       )}
-      {/* 电子 */}
       {electrons}
-      {/* 火花 */}
       {sparks}
-      {/* 灯泡标注 */}
       {shorted && (
         <text x={GEO.bulbX} y={GEO.y1 - 76} textAnchor="middle" fill={THEME.sub} fontSize={24}>
           电流几乎不走这里 → 熄灭
@@ -568,7 +535,7 @@ const CircuitDemo: React.FC<{ shorted: boolean; showSwitch?: boolean }> = ({
 /* ============================================================
    场景 01 — 开场钩子
    ============================================================ */
-const SceneHook: React.FC = () => {
+const SceneHook = () => {
   const f = useCurrentFrame();
   const ignite = interpolate(f, [40, 52], [0, 1], clamp);
   const shake = f >= 46 && f <= 76 ? Math.sin(f * 2.1) * (10 - (f - 46) * 0.3) : 0;
@@ -579,17 +546,14 @@ const SceneHook: React.FC = () => {
     <SceneFade>
       <AbsoluteFill style={{ transform: `translateX(${shake}px)`, fontFamily: FONT }}>
         <ActLabel num="00" title="开场" color={THEME.danger} />
-        {/* 左：灯泡 + 电源 */}
         <div style={{ position: "absolute", left: 120, top: 190, width: 880, height: 620 }}>
           <svg viewBox="0 0 880 620" width="100%" height="100%">
-            {/* 电源 */}
             <g>
               <rect x={30} y={260} width={190} height={70} rx={16} fill="rgba(63,227,255,0.08)" stroke="rgba(63,227,255,0.3)" strokeWidth={2} />
-              <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={70}>
+              <text x={125} y={305} textAnchor="middle" fill={THEME.cyan} fontSize={30} fontWeight={700}>
                 电源
               </text>
             </g>
-            {/* 导线 */}
             <path
               d="M 220 295 L 420 295 L 420 170 L 640 170"
               fill="none"
@@ -599,7 +563,6 @@ const SceneHook: React.FC = () => {
             />
             <path d="M 640 170 L 640 420" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinecap="round" />
             <path d="M 640 420 L 220 420 Z" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinecap="round" />
-            {/* 灯泡 */}
             <circle cx={640} cy={285} r={86} fill="rgba(255,194,71,0.08)" stroke={mixHex("#42506e", THEME.amber, ignite)} strokeWidth={5} />
             <path
               d="M 618 312 L 632 268 L 646 300 L 660 268 L 674 312"
@@ -612,7 +575,6 @@ const SceneHook: React.FC = () => {
             {ignite > 0.05 && (
               <circle cx={640} cy={285} r={86 + 46 * ignite} fill="none" stroke={THEME.amber} strokeWidth={4} opacity={0.25 * ignite} style={{ filter: "blur(10px)" }} />
             )}
-            {/* 短路导线（红线跨接） */}
             <path
               d="M 640 170 C 760 210, 760 360, 640 420"
               fill="none"
@@ -622,7 +584,6 @@ const SceneHook: React.FC = () => {
               strokeDasharray={`${dash} 400`}
               style={{ filter: `drop-shadow(0 0 ${8 + 20 * ignite}px rgba(255,77,94,0.85))` }}
             />
-            {/* 火花 */}
             {f >= 46 &&
               Array.from({ length: 18 }).map((_, i) => {
                 const t = (f - 46 - i * 2) / 24;
@@ -641,7 +602,6 @@ const SceneHook: React.FC = () => {
                   />
                 );
               })}
-            {/* 烟雾 */}
             {f > 60 &&
               [0, 1, 2].map((i) => {
                 const t = (f - 60 - i * 10) / 70;
@@ -659,7 +619,6 @@ const SceneHook: React.FC = () => {
               })}
           </svg>
         </div>
-        {/* 右：冲击文案 */}
         <div style={{ position: "absolute", right: 110, top: 250, width: 720, textAlign: "right" }}>
           <div style={{ color: THEME.sub, fontSize: 26, letterSpacing: 10, marginBottom: 20 }}>
             初中物理 · 安全用电
@@ -671,12 +630,8 @@ const SceneHook: React.FC = () => {
             <AlertBadge label="短路 = 失控的大电流" />
           </div>
         </div>
-        {/* 白闪 */}
         <AbsoluteFill style={{ background: "#fff", opacity: flash, mixBlendMode: "overlay" }} />
-        <Caption
-          text="一根小小的导线，为什么能引发一场火灾？"
-          delay={4}
-        />
+        <Caption text="一根小小的导线，为什么能引发一场火灾？" delay={4} />
         <Caption text="答案，就藏在「短路」这两个字里。" delay={78} />
       </AbsoluteFill>
     </SceneFade>
@@ -686,7 +641,7 @@ const SceneHook: React.FC = () => {
 /* ============================================================
    场景 02 — 什么是短路
    ============================================================ */
-const SceneWhat: React.FC = () => {
+const SceneWhat = () => {
   const f = useCurrentFrame();
   const reveal = spring({ frame: f - 22, config: { damping: 14, stiffness: 120 } });
   const grow = interpolate(f, [70, 120], [0, 1], clamp);
@@ -700,20 +655,16 @@ const SceneWhat: React.FC = () => {
             SHORT CIRCUIT · 短路
           </div>
         </div>
-        {/* 左：示意图 */}
         <div style={{ position: "absolute", left: 130, top: 340, width: 820, height: 430 }}>
           <svg viewBox="0 0 820 430" width="100%" height="100%">
-            {/* 用电器 */}
             <rect x={60} y={120} width={230} height={150} rx={20} fill="rgba(255,194,71,0.08)" stroke={THEME.amber} strokeWidth={3} />
-            <text x={175} y={195} textAnchor="middle" fill={THEME.amber} fontSize={32} fontWeight={70}>
+            <text x={175} y={195} textAnchor="middle" fill={THEME.amber} fontSize={32} fontWeight={700}>
               用电器
             </text>
             <text x={175} y={235} textAnchor="middle" fill={THEME.sub} fontSize={24}>
               有电阻
             </text>
-            {/* 导线回路 */}
             <path d="M 290 150 L 520 150 L 520 320 L 60 320 L 60 150" fill="none" stroke="#4d83b8" strokeWidth={8} strokeLinejoin="round" />
-            {/* 捷径 */}
             <path
               d="M 290 150 C 380 90, 440 90, 520 150"
               fill="none"
@@ -727,7 +678,6 @@ const SceneWhat: React.FC = () => {
             <text x={405} y={70} textAnchor="middle" fill={THEME.danger} fontSize={30} fontWeight={800} opacity={reveal}>
               捷径 · 电阻 ≈ 0
             </text>
-            {/* 电子 */}
             {Array.from({ length: 10 }).map((_, i) => {
               const t = ((i / 10 + f * 0.012) % 1) * 1.3;
               const onShort = t > 0.45 && t < 0.75;
@@ -747,7 +697,6 @@ const SceneWhat: React.FC = () => {
             })}
           </svg>
         </div>
-        {/* 右：定义 */}
         <div style={{ position: "absolute", right: 130, top: 330, width: 760 }}>
           <Panel style={{ padding: "42px 46px" }}>
             <div style={{ color: THEME.cyan, fontSize: 28, letterSpacing: 6, marginBottom: 16 }}>定义</div>
@@ -811,9 +760,9 @@ const SceneWhat: React.FC = () => {
 };
 
 /* ============================================================
-   场景 03 — 正常电路（互动式对比，切换到短路）
+   场景 03 — 正常电路对比
    ============================================================ */
-const SceneNormal: React.FC = () => {
+const SceneNormal = () => {
   const f = useCurrentFrame();
   const isShort = f >= 150;
   const heat = isShort ? interpolate(f, [150, 210], [0, 1], clamp) : 0;
@@ -827,13 +776,11 @@ const SceneNormal: React.FC = () => {
         <div style={{ position: "absolute", left: 90, top: 240, width: 1120, height: 560 }}>
           <CircuitDemo shorted={isShort} />
         </div>
-        {/* 右侧信息面板 */}
         <div style={{ position: "absolute", right: 90, top: 250, width: 610 }}>
           <Panel style={{ padding: "34px 38px" }} glow={isShort ? "rgba(255,77,94,0.25)" : "rgba(63,227,255,0.12)"}>
             <div style={{ color: THEME.sub, fontSize: 24, letterSpacing: 6, marginBottom: 18 }}>
               {isShort ? "状态：短路" : "状态：正常"}
             </div>
-            {/* 开关动画 */}
             <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 26 }}>
               <div
                 style={{
@@ -860,7 +807,6 @@ const SceneNormal: React.FC = () => {
               </div>
               <div style={{ color: THEME.text, fontSize: 28, fontWeight: 700 }}>开关：闭合</div>
             </div>
-            {/* 指标 */}
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <span style={{ color: THEME.sub, fontSize: 26 }}>电流 I</span>
@@ -875,7 +821,6 @@ const SceneNormal: React.FC = () => {
                 <Counter value={isShort ? 320 : 26} unit="℃" color={isShort ? THEME.danger2 : THEME.good} digits={0} />
               </div>
             </div>
-            {/* 条形对比 */}
             <div style={{ marginTop: 30 }}>
               <div style={{ color: THEME.sub, fontSize: 22, marginBottom: 12 }}>电流大小</div>
               <div style={{ height: 20, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
@@ -911,9 +856,9 @@ const SceneNormal: React.FC = () => {
 /* ============================================================
    场景 04 — 原理公式
    ============================================================ */
-const SceneFormula: React.FC = () => {
+const SceneFormula = () => {
   const f = useCurrentFrame();
-  const enter = (d: number) => spring({ frame: f - d, config: { damping: 13, stiffness: 120 } });
+  const enter = (d) => spring({ frame: f - d, config: { damping: 13, stiffness: 120 } });
   const blow = interpolate(f, [120, 165], [0, 1], clamp);
   return (
     <SceneFade>
@@ -923,7 +868,6 @@ const SceneFormula: React.FC = () => {
           <Title text="为什么会这样？看看这个公式" size={72} />
         </div>
         <div style={{ position: "absolute", top: 320, width: "100%", display: "flex", justifyContent: "center", gap: 70 }}>
-          {/* 公式卡 */}
           <Panel style={{ padding: "50px 66px", textAlign: "center", opacity: enter(6), transform: `translateY(${(1 - enter(6)) * 40}px)` }}>
             <div style={{ color: THEME.sub, fontSize: 26, letterSpacing: 8, marginBottom: 26 }}>欧姆定律</div>
             <div style={{ fontSize: 110, fontWeight: 900, color: THEME.text, fontFamily: MONO }}>
@@ -935,7 +879,6 @@ const SceneFormula: React.FC = () => {
               <span style={{ color: THEME.amber }}>电阻 R</span> 越小 → <span style={{ color: THEME.danger }}>电流 I</span> 越大
             </div>
           </Panel>
-          {/* 对比柱 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 24, width: 620 }}>
             <Panel style={{ padding: "28px 36px", opacity: enter(24) }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1015,7 +958,7 @@ const SceneFormula: React.FC = () => {
 /* ============================================================
    场景 05 — 危害
    ============================================================ */
-const SceneDanger: React.FC = () => {
+const SceneDanger = () => {
   const f = useCurrentFrame();
   const glow = 0.55 + 0.45 * Math.abs(Math.sin(f / 9));
   const temp = interpolate(f, [30, 110], [26, 480], clamp);
@@ -1033,12 +976,9 @@ const SceneDanger: React.FC = () => {
         <div style={{ position: "absolute", top: 140, width: "100%", textAlign: "center" }}>
           <Title text="大电流 = 高温 + 火灾" size={76} color={mixHex(THEME.text, THEME.danger, 0.55)} />
         </div>
-        {/* 左：过热导线 */}
         <div style={{ position: "absolute", left: 120, top: 300, width: 780, height: 480 }}>
           <svg viewBox="0 0 780 480" width="100%" height="100%">
-            {/* 热浪 */}
             <ellipse cx={390} cy={250} rx={330} ry={150} fill="rgba(255,90,46,0.10)" style={{ filter: "blur(30px)" }} opacity={glow} />
-            {/* 导线 */}
             <path
               d="M 60 250 C 240 170, 540 330, 720 250"
               fill="none"
@@ -1056,7 +996,6 @@ const SceneDanger: React.FC = () => {
               opacity={0.35 + 0.4 * glow}
               strokeDasharray="26 22"
             />
-            {/* 火焰 */}
             {flame > 0 &&
               [0, 1, 2, 3, 4, 5].map((i) => {
                 const x = 140 + i * 100;
@@ -1069,7 +1008,6 @@ const SceneDanger: React.FC = () => {
                   </g>
                 );
               })}
-            {/* 温度计 */}
             <rect x={690} y={90} width={22} height={230} rx={11} fill="rgba(255,255,255,0.1)" />
             <rect
               x={690}
@@ -1084,7 +1022,6 @@ const SceneDanger: React.FC = () => {
             </text>
           </svg>
         </div>
-        {/* 右：危害卡片 */}
         <div style={{ position: "absolute", right: 110, top: 290, width: 800, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26 }}>
           {cards.map((c, i) => {
             const t = spring({ frame: f - 24 - i * 12, config: { damping: 13, stiffness: 120 } });
@@ -1115,7 +1052,7 @@ const SceneDanger: React.FC = () => {
 /* ============================================================
    场景 06 — 如何避免 + 结尾
    ============================================================ */
-const ScenePrevent: React.FC = () => {
+const ScenePrevent = () => {
   const f = useCurrentFrame();
   const tips = [
     { n: "01", t: "别让导线直接相连", d: "火线与零线、正负极绝不能直接碰在一起" },
@@ -1184,7 +1121,6 @@ const ScenePrevent: React.FC = () => {
             );
           })}
         </div>
-        {/* 结尾总结条 */}
         <div
           style={{
             position: "absolute",
@@ -1219,10 +1155,9 @@ const ScenePrevent: React.FC = () => {
 /* ============================================================
    主合成：时间轴 + 音效
    ============================================================ */
-const ShortCircuitVideo: React.FC = () => {
+const ShortCircuitVideo = () => {
   const frame = useCurrentFrame();
-  const S = (s: number) => Math.round(s * 30);
-  // 音效触发点（全局帧）
+  const S = (s) => Math.round(s * 30);
   const tSpark = S(1.55);
   const tAlarm = S(2.1);
   const tRiser = S(5.2);
@@ -1236,7 +1171,6 @@ const ShortCircuitVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: THEME.bg, fontFamily: FONT }}>
       <Backdrop />
-      {/* 场景（有声版本） */}
       <Sequence from={0} durationInFrames={S(6)} premountFor={30}>
         <SceneHook />
         <Audio src={sndHum} volume={0.14} />
@@ -1266,7 +1200,6 @@ const ShortCircuitVideo: React.FC = () => {
       <Sequence from={S(26)} durationInFrames={S(7.8)} premountFor={30}>
         <ScenePrevent />
       </Sequence>
-      {/* 片尾渐隐 */}
       <AbsoluteFill
         style={{
           background: "#000",
@@ -1278,5 +1211,4 @@ const ShortCircuitVideo: React.FC = () => {
   );
 };
 
-// ✅ 补上注册入口，解决 CLI 报错
 registerRoot(ShortCircuitVideo);
