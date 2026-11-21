@@ -307,7 +307,6 @@ const CHAPTERS: Chapter[] = [
 ];
 
 /* ========================= 背景 / 颗粒 / 时间轴 ========================= */
-
 const buildAccentKeys = () => {
   const frames: number[] = [];
   const colors: string[] = [];
@@ -326,12 +325,12 @@ const buildAccentKeys = () => {
   });
   return {frames, colors};
 };
+
 const ACCENT_KEYS = buildAccentKeys();
 
 const Background: React.FC = () => {
   const frame = useCurrentFrame();
   const accent = interpolateColors(frame, ACCENT_KEYS.frames, ACCENT_KEYS.colors);
-
   const stars = useMemo(
     () =>
       new Array(66).fill(0).map((_, i) => ({
@@ -440,6 +439,7 @@ const Timeline: React.FC = () => {
           boxShadow: '0 0 16px rgba(233,180,76,0.35)',
         }}
       />
+
       {CHAPTERS.map((c, i) => {
         const start = CHAPTER_STARTS[i];
         const end = start + CHAPTER_DURATIONS[i];
@@ -476,6 +476,7 @@ const Timeline: React.FC = () => {
           </React.Fragment>
         );
       })}
+
       <div
         style={{
           position: 'absolute',
@@ -506,7 +507,6 @@ const Timeline: React.FC = () => {
 };
 
 /* ========================= 通用组件 ========================= */
-
 const Sweep: React.FC = () => {
   const frame = useCurrentFrame();
   const x = interpolate(frame, [0, 50], [-1500, 2500], CLAMP);
@@ -637,7 +637,6 @@ const SubtitleBar: React.FC<{
 };
 
 /* ========================= 片头 ========================= */
-
 const TITLE = '人类发展史';
 
 const Intro: React.FC = () => {
@@ -729,7 +728,6 @@ const Intro: React.FC = () => {
 };
 
 /* ========================= 章节 ========================= */
-
 const POSITIONS = [
   {left: 200, top: 340},
   {left: 200, top: 535},
@@ -746,9 +744,7 @@ const ChapterScene: React.FC<{chapter: Chapter; duration: number; index: number}
   const frame = useCurrentFrame();
   const interval = Math.round((duration - 130) / chapter.points.length);
   const starts = chapter.points.map((_, i) => 46 + i * interval);
-
   const sceneOpacity = interpolate(frame, [0, 12, duration - 18, duration - 2], [0, 1, 1, 0], CLAMP);
-
   const subtitleItems = [
     {start: 6, text: chapter.lead},
     ...chapter.points.map((p, i) => ({start: starts[i], text: p.sub})),
@@ -768,6 +764,7 @@ const ChapterScene: React.FC<{chapter: Chapter; duration: number; index: number}
           background: `linear-gradient(180deg, ${chapter.accent}00, ${chapter.accent}55 30%, ${chapter.accent}22 75%, ${chapter.accent}00)`,
         }}
       />
+
       <Reveal
         delay={10}
         style={{
@@ -862,7 +859,6 @@ const ChapterScene: React.FC<{chapter: Chapter; duration: number; index: number}
 };
 
 /* ========================= 片尾 ========================= */
-
 const Outro: React.FC = () => {
   const frame = useCurrentFrame();
   const ruleWidth = interpolate(frame, [40, 86], [0, 520], {
@@ -941,7 +937,6 @@ const Outro: React.FC = () => {
 };
 
 /* ========================= 主合成 ========================= */
-
 const HumanHistory: React.FC = () => (
   <AbsoluteFill style={{backgroundColor: COLORS.bg, fontFamily: FONT_BODY, color: COLORS.text}}>
     <Background />
@@ -984,9 +979,7 @@ const HumanHistory: React.FC = () => (
 );
 
 /* ========================= 注册 ========================= */
-
-loadFonts();
-
+// loadFonts(); // 已注释，避免GitHub云端加载谷歌字体超时
 const Root: React.FC = () => (
   <Composition
     id="HumanHistory"
