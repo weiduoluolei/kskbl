@@ -1,4 +1,5 @@
 name: Render Video
+run-name: Render Video 🎬
 on:
   push:
     branches: [ main ]
@@ -11,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Chinese font (Noto Sans CJK SC)
+      - name: Install Chinese font
         run: |
           sudo apt update
           sudo apt install -y fonts-noto-cjk
@@ -28,8 +29,8 @@ jobs:
       - name: Render video
         run: npx remotion render src/Root.jsx ShortCircuitVideo out/video.mp4
 
-      - name: Upload artifact
+      - name: Upload video
         uses: actions/upload-artifact@v4
         with:
           name: video-output
-          path: out/
+          path: out/video.mp4
