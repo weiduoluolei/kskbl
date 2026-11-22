@@ -1,5 +1,5 @@
-// src/Root.jsx — 成都地铁发展史 2010→2020（3D伪2D 线路生长动画）
-// 合成 id: ShortCircuitVideo（对应 render.yml）
+// src/Root.jsx — 成都地铁发展史 2010→2020（3D伪2D 线路生长动画 v2）
+// 修正：1号线改蓝色+支线 / 4号线与2号线分离 / 10号线镜头 / 结尾正面拉远
 
 import React from "react";
 import {
@@ -24,14 +24,17 @@ const F = '"Noto Sans SC","Noto Sans CJK SC",sans-serif';
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-/* ============ 线路数据（示意地图坐标，含站点名） ============ */
+/* ============ 线路数据（颜色对齐真实成都地铁） ============ */
 const LINES = {
-  l1: { name: "1号线", color: "#e4002b", pts: [
+  l1: { name: "1号线", color: "#0072bc", pts: [
     [1910,700,"韦家碾"],[1915,830,"升仙湖"],[1935,970,"人民北路"],[1955,1110,"文殊院"],
     [1975,1250,"骡马市"],[2000,1400,"天府广场"],[2030,1520,"锦江宾馆"],[2060,1640,"华西坝"],
     [2085,1760,"省体育馆"],[2110,1880,"倪家桥"],[2135,2000,"桐梓林"],[2170,2140,"火车南站"],
     [2195,2270,"高新"],[2215,2400,"金融城"],[2235,2520,"孵化园"],[2255,2650,"世纪城"],
-    [2275,2780,"四河"],[2290,2910,"华阳"],[2305,3040,"海昌路"],[2320,3170,"广都"],[2420,3230,"五根松"]
+    [2275,2780,"四河"],[2290,2910,"华阳"],[2305,3040,"海昌路"],[2320,3170,"广都"]
+  ]},
+  l1b: { name: "1号线支线", color: "#0072bc", pts: [
+    [2320,3170,"广都"],[2430,3235,"五根松"]
   ]},
   l2: { name: "2号线", color: "#f5a623", pts: [
     [760,1480,"犀浦"],[880,1470,"天河路"],[1020,1460,"百草路"],[1180,1450,"茶店子客运站"],
@@ -47,34 +50,34 @@ const LINES = {
     [1770,2065,"红牌楼"],[1700,2170,"太平园"],[1610,2320,"川藏立交"],[1450,2520,"双流西站"]
   ]},
   l4: { name: "4号线", color: "#2ecc71", pts: [
-    [880,1250,"万盛"],[1010,1245,"杨柳河"],[1140,1240,"凤溪河"],[1280,1235,"光华公园"],
-    [1420,1230,"文化宫"],[1560,1225,"宽窄巷子"],[1975,1250,"骡马市"],[2380,1275,"玉双路"],
-    [2650,1310,"双桥路"],[2820,1300,"万年场"],[3080,1245,"西河"]
+    [880,1650,"万盛"],[1010,1648,"杨柳河"],[1140,1644,"凤溪河"],[1280,1638,"光华公园"],
+    [1420,1632,"文化宫"],[1560,1628,"宽窄巷子"],[1975,1652,"骡马市"],[2380,1680,"玉双路"],
+    [2650,1714,"双桥路"],[2820,1706,"万年场"],[3080,1650,"西河"]
   ]},
   l5: { name: "5号线", color: "#b24df0", pts: [
     [1450,520,"华桂路"],[1420,780,""],[1450,1050,""],[1500,1330,""],
     [1560,1620,""],[1640,1900,""],[1720,2180,""],[1820,2460,""],[1950,2760,"回龙"]
   ]},
-  l6: { name: "6号线", color: "#1764c8", pts: [
+  l6: { name: "6号线", color: "#2b5fb3", pts: [
     [900,700,"望丛祠"],[1350,1050,""],[1750,1330,""],[2050,1580,""],[2450,1860,""],[2850,2150,""]
   ]},
   l7: { name: "7号线", color: "#00b0ca", pts: [
     [2020,900,"火车北站"],[2540,1120,""],[2680,1560,""],[2500,1980,""],
     [2170,2140,"火车南站"],[1700,2170,"太平园"],[1450,1750,""],[1500,1300,""],[2020,900,""]
   ]},
-  l8: { name: "8号线", color: "#e0559c", pts: [
+  l8: { name: "8号线", color: "#d4468c", pts: [
     [2760,880,""],[2460,1240,""],[2150,1560,""],[1850,1880,""],[1600,2180,""]
   ]},
-  l9: { name: "9号线", color: "#e67e22", pts: [
+  l9: { name: "9号线", color: "#e87722", pts: [
     [1180,1180,""],[1450,1450,""],[1720,1720,""],[2020,1930,""],[2320,2140,""]
   ]},
-  l10: { name: "10号线", color: "#1a7fd4", pts: [
+  l10: { name: "10号线", color: "#1b6cb5", pts: [
     [1700,2170,"太平园"],[1570,2350,"金花"],[1450,2530,""],[1310,2710,"双流机场T2"],[1180,2880,""],[1040,3050,""]
   ]},
-  l17: { name: "17号线", color: "#27c46b", pts: [
+  l17: { name: "17号线", color: "#38a855", pts: [
     [820,1680,""],[1180,1580,""],[1540,1490,""],[1900,1430,""],[2260,1390,""]
   ]},
-  l18: { name: "18号线", color: "#ff8c1a", pts: [
+  l18: { name: "18号线", color: "#f08300", pts: [
     [2170,2140,"火车南站"],[2380,2350,""],[2640,2580,""]
   ]},
 };
@@ -95,19 +98,19 @@ const EVENTS = [
     draws:[["l1",15,19]], camF:[2260,2650,1.15], camT:[2330,3120,1.05] },
   { year:"2015", date:"2015.12", title:"4号线一期开通", desc:"温江方向进城新通道",
     extra:"万盛—西河", lines:3,
-    draws:[["l4",0,10]], camF:[980,1250,1.1], camT:[3000,1270,1.0] },
+    draws:[["l4",0,10]], camF:[980,1650,1.1], camT:[3000,1670,1.0] },
   { year:"2016", date:"2016.07", title:"3号线一期开通", desc:"南北向第三条骨干线",
     extra:"军区总医院—太平园", lines:4,
     draws:[["l3",0,13]], camF:[2280,650,1.12], camT:[1760,2100,1.02] },
   { year:"2017", date:"2017.09", title:"10号线一期开通", desc:"成都首条机场专线",
     extra:"太平园—双流机场T2航站楼", lines:5,
-    draws:[["l10",0,3]], camF:[1720,2250,1.2], camT:[1330,2680,1.1] },
+    draws:[["l10",0,3]], camF:[1700,2200,1.18], camT:[1310,2710,1.12] },
   { year:"2017", date:"2017.12", title:"7号线环线开通", desc:"成都首条环形线路",
     extra:"绕行中心城区 · 换乘之王", lines:6,
     draws:[["l7",0,8]], camF:[2060,1520,1.12], camT:[2060,1520,0.94] },
   { year:"2018", date:"2018", title:"1号线三期 · 3号线二三期", desc:"线路两端继续延伸",
     extra:"北延韦家碾 · 南延五根松 · 抵达双流西站", lines:6,
-    draws:[["l1",0,1],["l1",19,20],["l3",13,15]], camF:[1930,850,1.0], camT:[2200,2900,0.88] },
+    draws:[["l1",0,1],["l1b",0,1],["l3",13,15]], camF:[1930,850,1.0], camT:[2200,2900,0.88] },
   { year:"2019", date:"2019.12", title:"5号线一二期开通", desc:"南北向新动脉",
     extra:"华桂路—回龙", lines:7,
     draws:[["l5",0,8]], camF:[1450,760,1.1], camT:[1930,2650,0.95] },
@@ -116,12 +119,12 @@ const EVENTS = [
     draws:[["l18",0,2]], camF:[2200,2180,1.15], camT:[2600,2540,1.05] },
   { year:"2020", date:"2020.12.30", title:"五线齐发", desc:"6 / 8 / 9 / 10二期 / 17号线 同步开通",
     extra:"运营里程突破 500 公里 · 网络化运营", lines:13,
-    draws:[["l6",0,5],["l8",0,4],["l9",0,4],["l17",0,4],["l10",3,5]], camF:[1900,1500,0.9], camT:[2050,1650,0.78] },
+    draws:[["l6",0,5],["l8",0,4],["l9",0,4],["l17",0,4],["l10",3,5]], camF:[1900,1500,0.82], camT:[2050,1650,0.52] },
 ];
 
 const INTRO = 90;
 const SEG = 135;
-const OUTRO = 150;
+const OUTRO = 180;
 const starts = EVENTS.map((_, i) => INTRO + i * SEG);
 const TOTAL = INTRO + EVENTS.length * SEG + OUTRO;
 
@@ -133,16 +136,26 @@ EVENTS.forEach((ev, ei) => {
     for (let i = a; i <= b; i++) {
       const [x, y, name] = line.pts[i];
       const frac = b === a ? 1 : (i - a) / (b - a);
-      REVEALS.push({ x, y, name, color: line.color, frame: starts[ei] + 14 + frac * 98 });
+      if (!REVEALS.some((r) => r.x === x && r.y === y && r.frame < starts[ei] + 14 + frac * 98)) {
+        REVEALS.push({ x, y, name, color: line.color, frame: starts[ei] + 14 + frac * 98 });
+      }
     }
   });
 });
 
-/* ============ 相机 ============ */
-const toXY = (c) => ({ x: -(c[0] - 2000) * 0.72, y: -(c[1] - 1400) * 0.4, s: c[2] });
+/* ============ 相机（修正旋转投影数学） ============ */
+const toXY = (c) => {
+  const dx = c[0] - 2000, dy = c[1] - 1400;
+  // rotateZ(-32°) → rotateX(52°) 的屏幕投影
+  const x1 = dx * 0.848 + dy * 0.530;
+  const y1 = (-dx * 0.530 + dy * 0.848) * 0.616;
+  return { x: -x1 * c[2], y: -y1 * c[2], s: c[2] };
+};
+
 const lerpCam = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, s: a.s + (b.s - a.s) * t });
+
 const camAt = (f) => {
-  if (f < INTRO) return lerpCam(toXY([2050, 1700, 0.6]), toXY([2050, 1600, 0.72]), ease(f / INTRO));
+  if (f < INTRO) return lerpCam(toXY([2050, 1700, 0.58]), toXY([2050, 1600, 0.72]), ease(f / INTRO));
   for (let i = 0; i < EVENTS.length; i++) {
     const s = starts[i];
     if (f >= s && f < s + SEG) {
@@ -150,42 +163,44 @@ const camAt = (f) => {
       return lerpCam(toXY(EVENTS[i].camF), toXY(EVENTS[i].camT), t);
     }
   }
-  return toXY([2050, 1600, 0.72]);
+  // 结尾：保持远景俯瞰
+  const lastEnd = starts[EVENTS.length - 1] + SEG;
+  const t = ease(Math.min(1, (f - lastEnd) / 80));
+  return lerpCam(toXY([2050, 1650, 0.52]), toXY([2050, 1600, 0.48]), t);
+};
+
+/* ============ 结尾转正（旋转渐变） ============ */
+const getRot = (f) => {
+  const frontStart = starts[EVENTS.length - 1];
+  const front = interpolate(f, [frontStart, frontStart + 130], [0, 1], clamp);
+  return { rotX: 52 - front * 20, rotZ: -32 + front * 16 };
 };
 
 /* ============ 地图舞台（伪3D） ============ */
 const MapStage = () => {
   const f = useCurrentFrame();
   const cam = camAt(f);
+  const { rotX, rotZ } = getRot(f);
 
   return (
     <div style={{ position: "absolute", inset: 0, perspective: "1600px", overflow: "hidden" }}>
       <div
         style={{
-          position: "absolute",
-          inset: 0,
+          position: "absolute", inset: 0,
           transform: `translate(${cam.x}px,${cam.y}px) scale(${cam.s})`,
           transformStyle: "preserve-3d",
         }}
       >
         <div
           style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            width: 0,
-            height: 0,
-            transform: "rotateX(52deg) rotateZ(-32deg)",
+            position: "absolute", left: "50%", top: "50%", width: 0, height: 0,
+            transform: `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`,
             transformStyle: "preserve-3d",
           }}
         >
           {/* 网格地板 */}
-          <svg
-            width={7200}
-            height={6000}
-            viewBox="-3600 -3000 7200 6000"
-            style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
-          >
+          <svg width={7200} height={6000} viewBox="-3600 -3000 7200 6000"
+            style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}>
             <defs>
               <radialGradient id="cityGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) scale(1600)">
                 <stop offset="0%" stopColor="#2a6bd4" stopOpacity="0.22" />
@@ -200,12 +215,8 @@ const MapStage = () => {
           </svg>
 
           {/* 线路 */}
-          <svg
-            width={7200}
-            height={6000}
-            viewBox="-3600 -3000 7200 6000"
-            style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
-          >
+          <svg width={7200} height={6000} viewBox="-3600 -3000 7200 6000"
+            style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}>
             {EVENTS.map((ev, ei) => (
               <React.Fragment key={ei}>
                 {ev.draws.map(([key, a, b], di) => {
@@ -215,15 +226,13 @@ const MapStage = () => {
                   const prog = interpolate(f, [starts[ei] + 12, starts[ei] + 112], [0, 1], clamp);
                   return (
                     <g key={di}>
-                      {/* 底衬 */}
                       <path d={d} fill="none" stroke="rgba(0,0,0,0.55)" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round"
                         opacity={0.12 + 0.88 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
-                      {/* 主线 */}
-                      <path d={d} fill="none" stroke={line.color} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round"
-                        pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog}
+                      <path d={d} fill="none" stroke={line.color} strokeWidth={key === "l1b" ? 6 : 9} strokeLinecap="round" strokeLinejoin="round"
+                        strokeDasharray={key === "l1b" ? "28 14" : 1} strokeDashoffset={key === "l1b" ? 0 : 1 - prog}
+                        pathLength={key === "l1b" ? undefined : 1}
                         opacity={0.14 + 0.86 * prog}
                         style={{ filter: `drop-shadow(0 0 14px ${line.color})` }} />
-                      {/* 行车流光 */}
                       {prog >= 1 && (
                         <path d={d} fill="none" stroke="#ffffff" strokeWidth={3} strokeLinecap="round"
                           strokeDasharray="16 56" strokeDashoffset={-f * 1.6} opacity={0.4} />
@@ -235,49 +244,20 @@ const MapStage = () => {
             ))}
           </svg>
 
-          {/* 站点（面向镜头的小牌） */}
+          {/* 站点 */}
           {REVEALS.map((r, i) => {
             const show = f >= r.frame;
             const pop = interpolate(f, [r.frame, r.frame + 9], [0, 1], clamp);
             return (
-              <div
-                key={i}
-                style={{
-                  position: "absolute",
-                  left: r.x - 2000,
-                  top: r.y - 1400,
-                  transform: `translate(-50%,-50%) translateZ(30px) rotateZ(32deg) rotateX(-52deg) scale(${0.3 + 0.7 * pop})`,
-                  opacity: show ? 1 : 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <div
-                  style={{
-                    width: 13,
-                    height: 13,
-                    borderRadius: "50%",
-                    background: "#ffffff",
-                    border: `3px solid ${r.color}`,
-                    boxShadow: `0 0 12px ${r.color}`,
-                    flexShrink: 0,
-                  }}
-                />
+              <div key={i} style={{
+                position: "absolute", left: r.x - 2000, top: r.y - 1400,
+                transform: `translate(-50%,-50%) translateZ(30px) rotateZ(${-rotZ}deg) rotateX(${-rotX}deg) scale(${0.3 + 0.7 * pop})`,
+                opacity: show ? 1 : 0,
+                display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap",
+              }}>
+                <div style={{ width: 13, height: 13, borderRadius: "50%", background: "#fff", border: `3px solid ${r.color}`, boxShadow: `0 0 12px ${r.color}`, flexShrink: 0 }} />
                 {r.name ? (
-                  <div
-                    style={{
-                      fontFamily: F,
-                      fontWeight: 700,
-                      fontSize: 19,
-                      color: "#eaf4ff",
-                      textShadow: "0 2px 10px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.8)",
-                      padding: "1px 6px",
-                      background: "rgba(8,16,34,0.42)",
-                      borderRadius: 5,
-                    }}
-                  >
+                  <div style={{ fontFamily: F, fontWeight: 700, fontSize: 19, color: "#eaf4ff", textShadow: "0 2px 10px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.8)", padding: "1px 6px", background: "rgba(8,16,34,0.42)", borderRadius: 5 }}>
                     {r.name}
                   </div>
                 ) : null}
@@ -297,59 +277,24 @@ const InfoCard = ({ ev, lf }) => {
   const outO = interpolate(lf, [SEG - 14, SEG], [1, 0], clamp);
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: outO }}>
-      {/* 左上年份卡 */}
       <div style={{ position: "absolute", left: 70, top: 56, opacity: inO, transform: `translateY(${inY}px)` }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 22 }}>
-          <div style={{ fontFamily: F, fontWeight: 900, fontSize: 110, color: "#fff", lineHeight: 1, textShadow: "0 8px 40px rgba(0,0,0,0.8)" }}>
-            {ev.year}
-          </div>
-          <div
-            style={{
-              fontFamily: F, fontSize: 26, fontWeight: 700, color: "#0a1226",
-              background: "linear-gradient(90deg,#4fd1ff,#7ef0c0)", padding: "8px 20px", borderRadius: 999,
-            }}
-          >
-            {ev.date}
-          </div>
+          <div style={{ fontFamily: F, fontWeight: 900, fontSize: 110, color: "#fff", lineHeight: 1, textShadow: "0 8px 40px rgba(0,0,0,0.8)" }}>{ev.year}</div>
+          <div style={{ fontFamily: F, fontSize: 26, fontWeight: 700, color: "#0a1226", background: "linear-gradient(90deg,#4fd1ff,#7ef0c0)", padding: "8px 20px", borderRadius: 999 }}>{ev.date}</div>
         </div>
-        <div style={{ marginTop: 16, fontFamily: F, fontWeight: 900, fontSize: 52, color: "#ffd76a", letterSpacing: 2, textShadow: "0 6px 30px rgba(0,0,0,0.85)" }}>
-          {ev.title}
-        </div>
-        <div style={{ marginTop: 10, fontFamily: F, fontSize: 30, color: "#dceaff", letterSpacing: 2, textShadow: "0 4px 22px rgba(0,0,0,0.9)" }}>
-          {ev.desc}
-        </div>
-        <div style={{ marginTop: 12, fontFamily: F, fontSize: 23, color: "rgba(200,225,255,0.8)", letterSpacing: 1 }}>
-          {ev.extra}
-        </div>
+        <div style={{ marginTop: 16, fontFamily: F, fontWeight: 900, fontSize: 52, color: "#ffd76a", letterSpacing: 2, textShadow: "0 6px 30px rgba(0,0,0,0.85)" }}>{ev.title}</div>
+        <div style={{ marginTop: 10, fontFamily: F, fontSize: 30, color: "#dceaff", letterSpacing: 2, textShadow: "0 4px 22px rgba(0,0,0,0.9)" }}>{ev.desc}</div>
+        <div style={{ marginTop: 12, fontFamily: F, fontSize: 23, color: "rgba(200,225,255,0.8)", letterSpacing: 1 }}>{ev.extra}</div>
       </div>
-
-      {/* 右上统计 */}
       <div style={{ position: "absolute", right: 70, top: 62, display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-end", opacity: inO }}>
-        <div
-          style={{
-            fontFamily: F, fontWeight: 900, fontSize: 34, color: "#fff",
-            background: "rgba(10,20,40,0.72)", border: "1px solid rgba(120,180,255,0.35)",
-            padding: "12px 26px", borderRadius: 14, letterSpacing: 2,
-          }}
-        >
+        <div style={{ fontFamily: F, fontWeight: 900, fontSize: 34, color: "#fff", background: "rgba(10,20,40,0.72)", border: "1px solid rgba(120,180,255,0.35)", padding: "12px 26px", borderRadius: 14, letterSpacing: 2 }}>
           运营线路 <span style={{ color: "#5ff0c0", fontSize: 44 }}>{ev.lines}</span> 条
         </div>
-        <div style={{ fontFamily: F, fontSize: 22, color: "rgba(190,215,255,0.75)", letterSpacing: 3 }}>
-          成都地铁 · 网络生长中
-        </div>
+        <div style={{ fontFamily: F, fontSize: 22, color: "rgba(190,215,255,0.75)", letterSpacing: 3 }}>成都地铁 · 网络生长中</div>
       </div>
-
-      {/* 底部时间尺 */}
       <div style={{ position: "absolute", left: 90, right: 90, bottom: 56 }}>
         <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.12)", position: "relative" }}>
-          <div
-            style={{
-              position: "absolute", left: 0, top: 0, bottom: 0,
-              width: `${((starts[EVENTS.indexOf(ev)] + lf) / TOTAL) * 100}%`,
-              background: "linear-gradient(90deg,#4fd1ff,#ffd76a,#ff6b6b)", borderRadius: 999,
-              boxShadow: "0 0 18px rgba(90,200,255,0.7)",
-            }}
-          />
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${((starts[EVENTS.indexOf(ev)] + lf) / TOTAL) * 100}%`, background: "linear-gradient(90deg,#4fd1ff,#ffd76a,#ff6b6b)", borderRadius: 999, boxShadow: "0 0 18px rgba(90,200,255,0.7)" }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontFamily: F, fontSize: 20, color: "rgba(180,210,255,0.6)", letterSpacing: 4 }}>
           <span>2010</span><span>2013</span><span>2016</span><span>2018</span><span>2020</span>
@@ -359,70 +304,40 @@ const InfoCard = ({ ev, lf }) => {
   );
 };
 
-/* ============ 开场 / 结尾 ============ */
+/* ============ 开场 ============ */
 const Intro = ({ f }) => (
   <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-    <div
-      style={{
-        fontFamily: F, fontWeight: 900, fontSize: 128, color: "#fff", letterSpacing: 14,
-        opacity: interpolate(f, [8, 30], [0, 1], clamp),
-        transform: `translateY(${interpolate(f, [8, 30], [46, 0], clamp)}px)`,
-        textShadow: "0 0 50px rgba(80,180,255,0.55), 0 20px 70px rgba(0,0,0,0.8)",
-      }}
-    >
+    <div style={{ fontFamily: F, fontWeight: 900, fontSize: 128, color: "#fff", letterSpacing: 14, opacity: interpolate(f, [8, 30], [0, 1], clamp), transform: `translateY(${interpolate(f, [8, 30], [46, 0], clamp)}px)`, textShadow: "0 0 50px rgba(80,180,255,0.55), 0 20px 70px rgba(0,0,0,0.8)" }}>
       成都地铁发展史
     </div>
-    <div
-      style={{
-        marginTop: 26, fontFamily: F, fontSize: 54, fontWeight: 700, letterSpacing: 16,
-        color: "#ffd76a",
-        opacity: interpolate(f, [30, 52], [0, 1], clamp),
-        transform: `translateY(${interpolate(f, [30, 52], [30, 0], clamp)}px)`,
-      }}
-    >
+    <div style={{ marginTop: 26, fontFamily: F, fontSize: 54, fontWeight: 700, letterSpacing: 16, color: "#ffd76a", opacity: interpolate(f, [30, 52], [0, 1], clamp), transform: `translateY(${interpolate(f, [30, 52], [30, 0], clamp)}px)` }}>
       2010 → 2020
     </div>
-    <div
-      style={{
-        marginTop: 22, fontFamily: F, fontSize: 30, color: "rgba(205,228,255,0.85)", letterSpacing: 10,
-        opacity: interpolate(f, [52, 74], [0, 1], clamp),
-      }}
-    >
+    <div style={{ marginTop: 22, fontFamily: F, fontSize: 30, color: "rgba(205,228,255,0.85)", letterSpacing: 10, opacity: interpolate(f, [52, 74], [0, 1], clamp) }}>
       从第一条线路开通 · 到五线齐发
     </div>
   </div>
 );
 
-const Outro = ({ f }) => (
-  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-    <div
-      style={{
-        fontFamily: F, fontWeight: 900, fontSize: 104, color: "#fff", letterSpacing: 12,
-        opacity: interpolate(f, [10, 34], [0, 1], clamp),
-        transform: `scale(${interpolate(f, [10, 34], [0.9, 1], clamp)})`,
-        textShadow: "0 0 60px rgba(255,190,80,0.5), 0 20px 70px rgba(0,0,0,0.85)",
-      }}
-    >
-      五线齐发 · 网络新时代
+/* ============ 结尾（正面全景） ============ */
+const Outro = ({ f }) => {
+  const { rotX, rotZ } = getRot(INTRO + EVENTS.length * SEG + f);
+  return (
+    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: 70, pointerEvents: "none" }}>
+      <div style={{ fontFamily: F, fontWeight: 900, fontSize: 96, color: "#fff", letterSpacing: 10, opacity: interpolate(f, [10, 34], [0, 1], clamp), transform: `scale(${interpolate(f, [10, 34], [0.9, 1], clamp)})`, textShadow: "0 0 60px rgba(255,190,80,0.5), 0 20px 70px rgba(0,0,0,0.85)" }}>
+        五线齐发 · 网络新时代
+      </div>
+      <div style={{ marginTop: 22, display: "flex", gap: 26, opacity: interpolate(f, [36, 60], [0, 1], clamp) }}>
+        {["13 条线路", "500+ 公里", "350+ 车站"].map((t, i) => (
+          <div key={i} style={{ fontFamily: F, fontWeight: 700, fontSize: 34, color: "#0a1226", background: ["#5ff0c0", "#ffd76a", "#ff8f8f"][i], padding: "14px 36px", borderRadius: 16 }}>{t}</div>
+        ))}
+      </div>
+      <div style={{ marginTop: 22, fontFamily: F, fontSize: 28, color: "rgba(210,232,255,0.85)", letterSpacing: 12, opacity: interpolate(f, [64, 90], [0, 1], clamp) }}>
+        成都，正驶向未来
+      </div>
     </div>
-    <div style={{ marginTop: 30, display: "flex", gap: 26, opacity: interpolate(f, [36, 60], [0, 1], clamp) }}>
-      {["13 条线路", "500+ 公里", "350+ 车站"].map((t, i) => (
-        <div
-          key={i}
-          style={{
-            fontFamily: F, fontWeight: 700, fontSize: 36, color: "#0a1226",
-            background: ["#5ff0c0", "#ffd76a", "#ff8f8f"][i], padding: "16px 38px", borderRadius: 16,
-          }}
-        >
-          {t}
-        </div>
-      ))}
-    </div>
-    <div style={{ marginTop: 34, fontFamily: F, fontSize: 30, color: "rgba(210,232,255,0.85)", letterSpacing: 12, opacity: interpolate(f, [64, 90], [0, 1], clamp) }}>
-      成都，正驶向未来
-    </div>
-  </div>
-);
+  );
+};
 
 /* ============ 主合成 ============ */
 const ChengduMetro = () => {
@@ -444,33 +359,15 @@ const ChengduMetro = () => {
 
   return (
     <AbsoluteFill style={{ background: "#060d1c", fontFamily: F }}>
-      {/* 天空氛围 */}
-      <AbsoluteFill
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 20%, #10264d 0%, #08101f 55%, #04070e 100%)",
-        }}
-      />
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 20%, #10264d 0%, #08101f 55%, #04070e 100%)" }} />
       <MapStage />
-
-      {/* 暗角 / 扫描质感 */}
       <AbsoluteFill style={{ pointerEvents: "none", background: "radial-gradient(ellipse at center, transparent 45%, rgba(2,6,14,0.72) 100%)" }} />
-      <AbsoluteFill
-        style={{
-          pointerEvents: "none",
-          opacity: 0.05,
-          backgroundImage:
-            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/></filter><rect width=\'160\' height=\'160\' filter=\'url(%23n)\' opacity=\'0.7\'/></svg>")',
-          backgroundSize: "220px 220px",
-        }}
-      />
+      <AbsoluteFill style={{ pointerEvents: "none", opacity: 0.05, backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\'><filter id=\'n\'><feTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/></filter><rect width=\'160\' height=\'160\' filter=\'url(%23n)\' opacity=\'0.7\'/></svg>")', backgroundSize: "220px 220px" }} />
 
-      {/* 文案层 */}
       {f < INTRO && <Intro f={f} />}
       {evIdx >= 0 && f < INTRO + EVENTS.length * SEG && <InfoCard ev={EVENTS[evIdx]} lf={lf} />}
       {f >= INTRO + EVENTS.length * SEG && <Outro f={f - INTRO - EVENTS.length * SEG} />}
 
-      {/* 结尾淡出 */}
       <AbsoluteFill style={{ background: "#000", opacity: interpolate(f, [TOTAL - 26, TOTAL - 2], [0, 1], clamp), pointerEvents: "none" }} />
     </AbsoluteFill>
   );
