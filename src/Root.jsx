@@ -1,5 +1,5 @@
-// src/Root.jsx — 我的人生函数图像 v3
-// 修改：镜头拉远缩小 / 巅峰光粒子爆发 / 整体更有机更有活力
+// src/Root.jsx — 打火机压电陶瓷点火原理动画
+// 合成 id: ShortCircuitVideo（对应 render.yml）
 
 import React from "react";
 import {
@@ -15,9 +15,9 @@ import {
 
 const spring = (o) => _spring({ fps: 30, ...o });
 
-if (typeof document !== "undefined" && !document.getElementById("lf")) {
+if (typeof document !== "undefined" && !document.getElementById("pf")) {
   const st = document.createElement("style");
-  st.id = "lf";
+  st.id = "pf";
   st.textContent =
     "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');";
   document.head.appendChild(st);
@@ -25,463 +25,608 @@ if (typeof document !== "undefined" && !document.getElementById("lf")) {
 
 const F = '"Noto Sans SC","Noto Sans CJK SC",sans-serif';
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
-const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-const TOTAL = 2250;
-const SW = 12000;
-const SH = 5000;
-const YB = 4600;
-const YT = 400;
+const C = {
+  bg: "#070b16",
+  bg2: "#0c1428",
+  cyan: "#3fe3ff",
+  gold: "#ffc247",
+  orange: "#ff7a2e",
+  red: "#ff4040",
+  pink: "#ff5e9c",
+  green: "#3fe3a1",
+  blue: "#4a8eff",
+  white: "#eef4ff",
+  sub: "#8fa4c8",
+  violet: "#b47aff",
+};
 
-const FD = [
-  [0,20],[.015,22],[.03,26],[.045,31],[.06,36],[.075,40],[.09,43],[.105,46],
-  [.12,48],[.135,50],[.15,52],
-  [.16,200],[.165,2000],[.17,6000],[.175,11000],[.18,14500],[.185,15800],[.19,16000],
-  [.21,15900],[.24,15700],[.27,15500],[.3,15350],[.35,15150],[.4,15000],
-  [.45,14850],[.5,14650],[.55,14450],[.6,14300],[.65,14200],[.68,14150],[.71,14080],
-  [.725,15500],[.74,16800],[.755,17600],[.77,17950],[.79,18100],
-  [.82,18250],[.85,18400],[.875,18550],[.885,18800],
-  [.895,21000],[.905,26000],[.915,32000],[.925,35500],[.935,37200],[.945,37900],
-  [.955,38100],[.97,38150],[1,38200],
-];
-const pts = FD.map(([p, fan]) => [p * SW, YB - (fan / 40000) * (YB - YT)]);
+/* ============================================================
+   时间轴（30fps）
+   0-150    开场：打火机点火钩子
+   150-450  幕1：压电效应原理（晶体受压 → 电荷分离）
+   450-780  幕2：高压放电（电荷积累 → 击穿空气 → 火花）
+   780-1080 幕3：微观化学（分子活化 → 链式燃烧）
+   1080-1350 幕4：总结 + 谢谢观看
+   总计 1350 帧 = 45 秒
+   ============================================================ */
+const TOTAL = 1350;
 
-function smoothPath(pp) {
-  if (pp.length < 2) return "";
-  let d = `M${pp[0][0].toFixed(1)},${pp[0][1].toFixed(1)}`;
-  for (let i = 0; i < pp.length - 1; i++) {
-    const p0 = pp[Math.max(0, i - 1)], p1 = pp[i], p2 = pp[i + 1], p3 = pp[Math.min(pp.length - 1, i + 2)];
-    d += ` C${(p1[0]+(p2[0]-p0[0])/6).toFixed(1)},${(p1[1]+(p2[1]-p0[1])/6).toFixed(1)} ${(p2[0]-(p3[0]-p1[0])/6).toFixed(1)},${(p2[1]-(p3[1]-p1[1])/6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
-  }
-  return d;
-}
-const curveD = smoothPath(pts);
-const fillD = curveD + ` L${SW},${YB} L0,${YB} Z`;
-
-/* ========== 相机（拉远，缩小缩放比） ========== */
-const CAM = [
-  { f: 0, cx: 400, cy: 4300, s: 1.6 },
-  { f: 60, cx: 500, cy: 4320, s: 1.5 },
-  { f: 130, cx: 500, cy: 4320, s: 1.5 },
-  { f: 330, cx: 1200, cy: 4200, s: 1.3 },
-  { f: 475, cx: 1400, cy: 4180, s: 1.2 },
-  { f: 560, cx: 1800, cy: 3800, s: 1.0 },
-  { f: 650, cx: 2400, cy: 2600, s: 0.75 },
-  { f: 800, cx: 2500, cy: 2500, s: 0.72 },
-  { f: 985, cx: 3800, cy: 3100, s: 0.7 },
-  { f: 1125, cx: 4800, cy: 3050, s: 0.68 },
-  { f: 1330, cx: 8000, cy: 2800, s: 0.8 },
-  { f: 1415, cx: 8400, cy: 2700, s: 0.75 },
-  { f: 1495, cx: 8700, cy: 2600, s: 0.72 },
-  { f: 1570, cx: 9500, cy: 1800, s: 0.55 },
-  { f: 1650, cx: 10600, cy: 800, s: 0.38 },
-  { f: 1820, cx: 10800, cy: 700, s: 0.35 },
-  { f: 2000, cx: 7500, cy: 2200, s: 0.26 },
-  { f: 2120, cx: 6500, cy: 2400, s: 0.23 },
-  { f: 2250, cx: 6200, cy: 2500, s: 0.22 },
-];
-
-function camAt(f) {
-  if (f <= CAM[0].f) return { ...CAM[0] };
-  for (let i = 0; i < CAM.length - 1; i++) {
-    const a = CAM[i], b = CAM[i + 1];
-    if (f >= a.f && f <= b.f) {
-      const t = ease((f - a.f) / (b.f - a.f));
-      return { cx: a.cx + (b.cx - a.cx) * t, cy: a.cy + (b.cy - a.cy) * t, s: a.s + (b.s - a.s) * t };
-    }
-  }
-  return { ...CAM[CAM.length - 1] };
-}
-
-/* ========== 大幅震动 ========== */
-function shakeAt(f) {
-  const events = [
-    { f: 560, p: 35, d: 30 },
-    { f: 650, p: 70, d: 50 },
-    { f: 1380, p: 30, d: 25 },
-    { f: 1570, p: 50, d: 35 },
-    { f: 1650, p: 90, d: 60 },
-  ];
-  let sx = 0, sy = 0;
-  for (const s of events) {
-    const dt = f - s.f;
-    if (dt >= 0 && dt < s.d) {
-      const decay = Math.pow(1 - dt / s.d, 1.5) * s.p;
-      sx += Math.sin(f * 2.7 + s.f * 0.31) * decay;
-      sy += Math.cos(f * 3.3 + s.f * 0.47) * decay * 0.65;
-    }
-  }
-  return { sx, sy };
-}
-
-function drawP(f) {
-  return interpolate(
-    f,
-    [0, 130, 330, 475, 560, 650, 800, 985, 1125, 1330, 1415, 1495, 1570, 1650, 1820, 2000, 2120],
-    [0, 0.05, 0.11, 0.15, 0.17, 0.19, 0.25, 0.38, 0.52, 0.68, 0.76, 0.83, 0.88, 0.94, 0.97, 0.99, 1],
-    clamp
-  );
-}
-
-function goldIntensity(f) {
-  return interpolate(f, [1550, 1650, 1950, 2150], [0, 1, 1, 0], clamp);
-}
-
-/* ========== 字幕 ========== */
-const SUBS = [
-  { t: "2019年10月，我注册了抖音账号", s: 15, e: 135 },
-  { t: "那时才几岁，只会对嘴型演沙雕视频", s: 135, e: 265 },
-  { t: "没几个人看，粉丝只有20多个", s: 265, e: 370 },
-  { t: "2020年，学会了录屏，但不会剪辑", s: 370, e: 480 },
-  { t: "一直处于不温不火的状态……", s: 480, e: 565 },
-  { t: "随手发了一个特效视频", s: 565, e: 650 },
-  { t: "火了！2.2万点赞！", s: 650, e: 760 },
-  { t: "粉丝从20多暴涨到1.6万！", s: 760, e: 870 },
-  { t: "但之后又回到了不温不火……", s: 870, e: 990 },
-  { t: "2020到2025年，没想在自媒体上发展", s: 990, e: 1130 },
-  { t: "2025年，我想要影石AcePro相机", s: 1130, e: 1240 },
-  { t: "暑假开始学做抖音特效赚钱", s: 1240, e: 1330 },
-  { t: "特效视频火了，但没几个人用……", s: 1330, e: 1420 },
-  { t: "不过粉丝涨到了1.8万", s: 1420, e: 1500 },
-  { t: "2026年6月，开始在星图接小游戏广告", s: 1500, e: 1610 },
-  { t: "没想到视频爆火了！", s: 1610, e: 1720 },
-  { t: "截止现在，粉丝3.8万！", s: 1720, e: 1830 },
-  { t: "我也挣到了钱，买到了相机", s: 1830, e: 1930 },
-  { t: "从对嘴型少年，到真正的创作者", s: 1930, e: 2040 },
-  { t: "每一次跌落，都是为了下一次跃升", s: 2040, e: 2140 },
-];
-
-const ANNOS = [
-  { f: 680, x: 2350, y: 2580, t: "2.2万点赞！", c: "#ff4466", sz: 130, d: 200 },
-  { f: 790, x: 2700, y: 2340, t: "粉丝暴涨 1.6万", c: "#ffaa22", sz: 105, d: 200 },
-  { f: 1050, x: 5500, y: 3350, t: "2020-2025 不温不火", c: "#5580aa", sz: 95, d: 360 },
-  { f: 1400, x: 8800, y: 2480, t: "粉丝 1.8万", c: "#44ccff", sz: 110, d: 200 },
-  { f: 1680, x: 11100, y: 700, t: "粉丝 3.8万！", c: "#ff44aa", sz: 260, d: 420 },
-];
-
-const XL = [
-  { x: 150, t: "2019.10" }, { x: 1500, t: "2020" }, { x: 5000, t: "2022" },
-  { x: 8500, t: "2025" }, { x: 10800, t: "2026" },
-];
-const YL = [
-  { y: 4580, t: "0" }, { y: 3550, t: "1万" }, { y: 2500, t: "2万" },
-  { y: 1450, t: "3万" }, { y: 420, t: "4万" },
-];
-
-/* ============================================================ */
-
-const SubBar = () => {
+/* ============================================================
+   基础组件
+   ============================================================ */
+const Backdrop = () => {
   const f = useCurrentFrame();
-  const c = SUBS.find((s) => f >= s.s && f < s.e);
-  if (!c) return null;
-  const fi = interpolate(f, [c.s, c.s + 12], [0, 1], clamp);
-  const fo = interpolate(f, [c.e - 12, c.e], [1, 0], clamp);
+  const drift = Math.sin(f / 80) * 24;
   return (
-    <div style={{ position: "absolute", bottom: 56, left: 80, right: 80, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+    <AbsoluteFill style={{ background: C.bg, overflow: "hidden" }}>
+      <div style={{ position: "absolute", width: 1300, height: 1300, left: -300 + drift, top: -480, background: "radial-gradient(circle, rgba(63,227,255,0.10) 0%, transparent 62%)" }} />
+      <div style={{ position: "absolute", width: 1200, height: 1200, right: -380 - drift, bottom: -520, background: "radial-gradient(circle, rgba(255,122,46,0.10) 0%, transparent 62%)" }} />
+      <AbsoluteFill style={{
+        backgroundImage: "linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px)",
+        backgroundSize: "72px 72px",
+      }} />
+    </AbsoluteFill>
+  );
+};
+
+const ActLabel = ({ num, title, color = C.cyan }) => {
+  const f = useCurrentFrame();
+  const o = interpolate(f, [0, 12], [0, 1], clamp);
+  return (
+    <div style={{ position: "absolute", top: 50, left: 70, display: "flex", alignItems: "center", gap: 16, opacity: o }}>
+      <div style={{ width: 9, height: 38, borderRadius: 5, background: color, boxShadow: `0 0 18px ${color}` }} />
+      <div style={{ color: C.sub, fontSize: 21, letterSpacing: 5 }}>{num}</div>
+      <div style={{ color: C.white, fontSize: 28, fontWeight: 700, letterSpacing: 4 }}>{title}</div>
+    </div>
+  );
+};
+
+const Caption = ({ text, delay = 0 }) => {
+  const f = useCurrentFrame();
+  const y = interpolate(f - delay, [0, 12], [22, 0], clamp);
+  const o = interpolate(f - delay, [0, 12], [0, 1], clamp);
+  return (
+    <div style={{ position: "absolute", left: 100, right: 100, bottom: 50, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
       <div style={{
-        background: "rgba(0,0,0,0.78)", borderRadius: 20, padding: "24px 56px",
-        opacity: Math.min(fi, fo), transform: `translateY(${(1 - fi) * 12}px)`,
-        border: "1px solid rgba(100,160,255,0.15)", maxWidth: "85%",
+        transform: `translateY(${y}px)`, opacity: o,
+        background: "rgba(8,13,26,0.82)", border: `1px solid rgba(100,160,255,0.18)`,
+        borderRadius: 16, padding: "18px 42px", color: C.white, fontSize: 33,
+        fontWeight: 500, letterSpacing: 1.5, textAlign: "center", lineHeight: 1.5,
       }}>
-        <div style={{ fontFamily: F, fontWeight: 700, fontSize: 44, color: "#fff", textAlign: "center", lineHeight: 1.5, letterSpacing: 3 }}>
-          {c.t}
+        {text}
+      </div>
+    </div>
+  );
+};
+
+const BigTitle = ({ text, size = 78, color = C.white, delay = 0 }) => {
+  const f = useCurrentFrame();
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+      {text.split("").map((ch, i) => {
+        const t = spring({ frame: f - delay - i * 2.5, config: { damping: 12, stiffness: 130 } });
+        return (
+          <span key={i} style={{
+            fontSize: size, fontWeight: 900, color, letterSpacing: size * 0.04,
+            lineHeight: 1.2, opacity: t, display: "inline-block", whiteSpace: "pre",
+            transform: `translateY(${(1 - t) * 36}px) scale(${0.87 + 0.13 * t})`,
+            textShadow: `0 0 ${24 * t}px ${color}55`,
+          }}>{ch}</span>
+        );
+      })}
+    </div>
+  );
+};
+
+const KPI = ({ label, value, unit, color, top, left, delay = 0 }) => {
+  const f = useCurrentFrame();
+  const s = spring({ frame: f - delay, config: { damping: 12, stiffness: 120 }, durationInFrames: 22 });
+  return (
+    <div style={{
+      position: "absolute", top, left,
+      opacity: Math.min(1, s * 1.5), transform: `translateY(${(1 - s) * 24}px)`,
+      background: "rgba(14,22,44,0.85)", border: "1px solid rgba(100,160,255,0.22)",
+      borderRadius: 18, padding: "22px 30px", minWidth: 240,
+    }}>
+      <div style={{ color: C.sub, fontSize: 21, letterSpacing: 4 }}>{label}</div>
+      <div style={{ marginTop: 8, display: "flex", alignItems: "baseline", gap: 8 }}>
+        <span style={{ color, fontSize: 52, fontWeight: 900, fontFamily: "monospace" }}>{value}</span>
+        <span style={{ color: C.sub, fontSize: 24 }}>{unit}</span>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   开场：打火机点火
+   ============================================================ */
+const SceneHook = () => {
+  const f = useCurrentFrame();
+  const press = interpolate(f, [30, 50], [0, 1], clamp); // 按下
+  const sparkT = f - 55;
+  const glow = f > 55 ? Math.max(0, 1 - sparkT / 25) : 0;
+  const flameH = interpolate(f, [72, 95], [0, 1], clamp);
+  const flicker = 0.85 + 0.15 * Math.sin(f * 1.7);
+
+  return (
+    <AbsoluteFill>
+      <ActLabel num="00" title="一根打火机里的物理与化学" color={C.orange} />
+      <div style={{ position: "absolute", top: 145, width: "100%", textAlign: "center" }}>
+        <BigTitle text="轻轻一按，火花从哪来？" size={82} />
+      </div>
+
+      {/* 打火机实物动画 */}
+      <svg viewBox="0 0 900 780" width="900" height="780" style={{ position: "absolute", left: 120, top: 300 }}>
+        {/* 火焰 */}
+        {flameH > 0 && (
+          <g opacity={flameH * flicker}>
+            <ellipse cx={450} cy={210} rx={44} ry={130 * flameH} fill="rgba(255,160,50,0.30)" />
+            <ellipse cx={450} cy={230} rx={28} ry={95 * flameH} fill="rgba(255,200,80,0.5)" />
+            <ellipse cx={450} cy={255} rx={15} ry={55 * flameH} fill="rgba(255,240,180,0.8)" />
+          </g>
+        )}
+        {/* 火花 */}
+        {sparkT > 0 && sparkT < 18 && Array.from({ length: 14 }).map((_, i) => {
+          const t = sparkT / 18;
+          const a = (i / 14) * Math.PI * 2 + i * 0.8;
+          const r = t * (120 + (i % 4) * 60);
+          return (
+            <g key={i}>
+              <circle cx={450 + Math.cos(a) * r} cy={300 + Math.sin(a) * r * 0.8} r={(4 - t * 3) * 1.2}
+                fill={i % 2 ? "#ffe070" : "#7ad8ff"} opacity={1 - t} />
+            </g>
+          );
+        })}
+        {/* 机身 */}
+        <rect x={355} y={310} width={190} height={330} rx={26} fill="#22304e" stroke="#3a5070" strokeWidth={3} />
+        <rect x={355} y={310} width={190} height={80} rx={26} fill="#2c4060" />
+        {/* 金属罩 */}
+        <rect x={410} y={255} width={80} height={62} rx={10} fill="#8598b4" stroke="#a8bad2" strokeWidth={2} />
+        {/* 出气孔 */}
+        <rect x={438} y={242} width={24} height={18} rx={5} fill="#556680" />
+        {/* 按钮（按压动画） */}
+        <rect x={545} y={330} width={58} height={110} rx={16} fill={press > 0.5 ? "#ff7040" : "#e0522a"}
+          transform={`translate(${press * 14},0)`} stroke="#ff9060" strokeWidth={2} />
+        {/* 高亮线条 */}
+        <rect x={375} y={410} width={150} height={6} rx={3} fill="rgba(255,255,255,0.12)" />
+        <rect x={375} y={430} width={150} height={6} rx={3} fill="rgba(255,255,255,0.08)" />
+        {/* 说明 */}
+        <text x={450} y={700} textAnchor="middle" fill={C.sub} fontSize={26} fontFamily={F}>压电陶瓷点火器</text>
+      </svg>
+
+      {/* 右侧文字 */}
+      <div style={{ position: "absolute", right: 130, top: 340, width: 660 }}>
+        {[
+          { t: "手指按下压电按钮", s: 60, c: C.cyan },
+          { t: "压电陶瓷瞬间产生上万伏高压", s: 95, c: C.gold },
+          { t: "电极间隙击穿，迸发火花", s: 130, c: C.orange },
+          { t: "火花点燃可燃气体 → 火焰", s: 165, c: C.red },
+        ].map((item, i) => {
+          const s = spring({ frame: f - item.s, config: { damping: 13, stiffness: 115 }, durationInFrames: 22 });
+          return (
+            <div key={i} style={{
+              display: "flex", alignItems: "center", gap: 18, marginBottom: 30,
+              opacity: Math.min(1, s * 1.5), transform: `translateX(${(1 - s) * 40}px)`,
+            }}>
+              <div style={{ width: 12, height: 12, borderRadius: "50%", background: item.c, boxShadow: `0 0 14px ${item.c}`, flexShrink: 0 }} />
+              <div style={{ color: C.white, fontSize: 34, fontWeight: 700, letterSpacing: 2 }}>{item.t}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Caption text="打火机轻轻一按就冒出火花——这背后是压电效应与气体放电" delay={10} />
+      <Caption text="今天，我们从原子层面揭开它的秘密" delay={105} />
+    </AbsoluteFill>
+  );
+};
+
+/* ============================================================
+   幕1：压电效应（晶体受压 → 电荷分离）
+   ============================================================ */
+const ScenePiezo = () => {
+  const f = useCurrentFrame();
+  const press = interpolate(f, [40, 80, 160, 200], [0, 1, 1, 0], clamp);
+  const charge = interpolate(f, [70, 170], [0, 1], clamp);
+
+  /* 晶格原子位移 */
+  const shift = press * 14;
+
+  return (
+    <AbsoluteFill>
+      <ActLabel num="01" title="压电效应 · 原子层面" color={C.cyan} />
+      <div style={{ position: "absolute", top: 130, width: "100%", textAlign: "center" }}>
+        <BigTitle text="压力让晶格中的正负电荷分离" size={66} />
+        <div style={{ color: C.sub, fontSize: 26, marginTop: 14, letterSpacing: 5 }}>Piezoelectric Effect</div>
+      </div>
+
+      {/* 左：晶格动画 */}
+      <svg viewBox="0 0 800 560" width="800" height="560" style={{ position: "absolute", left: 100, top: 310 }}>
+        {/* 外力箭头 */}
+        <g opacity={press > 0.02 ? 1 : 0}>
+          <path d={`M 400 30 L 400 ${110 - press * 18}`} stroke={C.gold} strokeWidth={7} markerEnd="" />
+          <polygon points={`${400 - 18},${110 - press * 18 - 26} ${400 + 18},${110 - press * 18 - 26} ${400},${110 - press * 18 - 2}`} fill={C.gold} />
+          <text x={400} y={22} textAnchor="middle" fill={C.gold} fontSize={26} fontWeight={700} fontFamily={F}>压力 F</text>
+        </g>
+
+        {/* 晶体框 */}
+        <rect x={180} y={115} width={440} height={330} rx={18} fill="rgba(63,227,255,0.05)" stroke="rgba(63,227,255,0.3)" strokeWidth={3} />
+        <text x={400} y={505} textAnchor="middle" fill={C.sub} fontSize={23} fontFamily={F}>压电陶瓷晶格（示意）</text>
+
+        {/* 原子阵列 5x3：正负交替 */}
+        {Array.from({ length: 15 }).map((_, i) => {
+          const row = Math.floor(i / 5);
+          const col = i % 5;
+          const pos = i % 2 === 0; // 正电荷
+          const x = 240 + col * 80;
+          const y = 190 + row * 100 - shift * (pos ? -1 : 1) * (1 - Math.abs(col - 2) * 0.12);
+          return (
+            <g key={i}>
+              <circle cx={x} cy={y} r={26} fill={pos ? "rgba(74,142,255,0.85)" : "rgba(255,94,120,0.85)"} />
+              <text x={x} y={y + 9} textAnchor="middle" fill="#fff" fontSize={24} fontWeight={900}>{pos ? "+" : "−"}</text>
+              {/* 位移虚线 */}
+              {press > 0.05 && (
+                <line x1={x} y1={y + (pos ? 22 : -22) + (pos ? -1 : 1) * 40 * press} x2={x} y2={y}
+                  stroke={pos ? "rgba(74,142,255,0.35)" : "rgba(255,94,120,0.35)"} strokeWidth={2} strokeDasharray="5 5" />
+              )}
+            </g>
+          );
+        })}
+
+        {/* 表面电荷积累 */}
+        {charge > 0.05 && (
+          <g opacity={charge}>
+            <rect x={180} y={106} width={440} height={12} rx={6} fill={C.blue} opacity={0.5 + 0.4 * charge} />
+            <rect x={180} y={432} width={440} height={12} rx={6} fill={C.red} opacity={0.5 + 0.4 * charge} />
+            <text x={655} y={118} fill={C.blue} fontSize={26} fontWeight={700} fontFamily={F}>+ Q</text>
+            <text x={655} y={450} fill={C.red} fontSize={26} fontWeight={700} fontFamily={F}>− Q</text>
+          </g>
+        )}
+      </svg>
+
+      {/* 右：解释 + 数据 */}
+      <div style={{ position: "absolute", right: 110, top: 320, width: 680 }}>
+        {[
+          { t: "压电陶瓷（锆钛酸铅 PZT）晶格中，正负电荷中心重合", d: 20, c: C.white },
+          { t: "外力压缩 → 晶格变形 → 正负电荷中心错开", d: 65, c: C.cyan },
+          { t: "上下表面积累等量异号电荷（极化）", d: 115, c: C.gold },
+          { t: "机械能 → 电能：这就是压电效应", d: 170, c: C.green },
+        ].map((item, i) => {
+          const s = spring({ frame: f - item.d, config: { damping: 13, stiffness: 115 }, durationInFrames: 22 });
+          return (
+            <div key={i} style={{
+              opacity: Math.min(1, s * 1.5), transform: `translateX(${(1 - s) * 34}px)`,
+              marginBottom: 26, display: "flex", gap: 16, alignItems: "flex-start",
+            }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: item.c, marginTop: 12, flexShrink: 0, boxShadow: `0 0 10px ${item.c}` }} />
+              <div style={{ color: item.c, fontSize: 31, fontWeight: 700, lineHeight: 1.55, letterSpacing: 1 }}>{item.t}</div>
+            </div>
+          );
+        })}
+
+        <KPI label="典型输出电压" value="10-20" unit="kV" color={C.gold} top={395} left={0} delay={200} />
+        <KPI label="按压一次能量" value="≈1" unit="mJ" color={C.green} top={395} left={310} delay={225} />
+      </div>
+
+      <Caption text="压电陶瓷受压时，晶格变形使正负电荷中心分离" delay={15} />
+      <Caption text="上下表面积累电荷，产生上万伏的高压" delay={165} />
+    </AbsoluteFill>
+  );
+};
+
+/* ============================================================
+   幕2：高压放电（电荷积累 → 空气击穿 → 火花）
+   ============================================================ */
+const SceneSpark = () => {
+  const f = useCurrentFrame();
+  const charge = interpolate(f, [0, 90], [0, 1], clamp);
+  const breakout = f > 95;
+  const sparkT = f - 95;
+
+  /* 电子雪崩 */
+  const avalanche = f > 105 && f < 175;
+
+  return (
+    <AbsoluteFill>
+      <ActLabel num="02" title="气体放电 · 电子雪崩" color={C.gold} />
+      <div style={{ position: "absolute", top: 130, width: "100%", textAlign: "center" }}>
+        <BigTitle text="高压击穿空气，电流引爆气体" size={68} />
+      </div>
+
+      {/* 放电间隙图 */}
+      <svg viewBox="0 0 1100 560" width="1100" height="560" style={{ position: "absolute", left: 80, top: 300 }}>
+        {/* 电极 */}
+        <rect x={180} y={220} width={280} height={120} rx={14} fill="#38506e" stroke="#5a7496" strokeWidth={3} />
+        <text x={320} y={295} textAnchor="middle" fill={C.white} fontSize={28} fontWeight={700} fontFamily={F}>放电电极</text>
+        <rect x={640} y={220} width={280} height={120} rx={14} fill="#38506e" stroke="#5a7496" strokeWidth={3} />
+        <text x={780} y={295} textAnchor="middle" fill={C.white} fontSize={28} fontWeight={700} fontFamily={F}>放电电极</text>
+
+        {/* 电极尖端 */}
+        <path d="M 460 250 L 500 275 L 460 300 Z" fill="#5a7496" />
+        <path d="M 640 250 L 600 275 L 640 300 Z" fill="#5a7496" />
+
+        {/* 电荷符号 */}
+        {charge > 0.1 && (
+          <g opacity={charge}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <text key={`n${i}`} x={250 + i * 40} y={195} fill={C.blue} fontSize={28} fontWeight={900}>−</text>
+            ))}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <text key={`p${i}`} x={660 + i * 40} y={195} fill={C.red} fontSize={28} fontWeight={900}>+</text>
+            ))}
+          </g>
+        )}
+
+        {/* 电场线 */}
+        {charge > 0.3 && !breakout && Array.from({ length: 6 }).map((_, i) => {
+          const y = 210 + i * 34;
+          return (
+            <line key={`ef${i}`} x1={505} y1={y} x2={595} y2={y} stroke="rgba(255,194,71,0.4)" strokeWidth={2}
+              strokeDasharray="8 8" strokeDashoffset={-f * 1.5} />
+          );
+        })}
+
+        {/* 击穿火花通道 */}
+        {breakout && sparkT < 120 && (
+          <g>
+            {/* 主通道 */}
+            <path d={`M 500 275 L 530 ${252 + Math.sin(f * 2.1) * 12} L 555 ${298 + Math.cos(f * 1.8) * 10} L 585 ${258 + Math.sin(f * 2.4) * 11} L 600 275`}
+              fill="none" stroke="#ffe070" strokeWidth={5} opacity={0.6 + 0.4 * Math.sin(f * 3)} />
+            <path d={`M 500 275 L 530 ${252 + Math.sin(f * 2.1) * 12} L 555 ${298 + Math.cos(f * 1.8) * 10} L 585 ${258 + Math.sin(f * 2.4) * 11} L 600 275`}
+              fill="none" stroke="#fff" strokeWidth={2} opacity={0.7} />
+            {/* 火花飞溅 */}
+            {Array.from({ length: 10 }).map((_, i) => {
+              const t = ((f - 95) / 30 + i * 0.1) % 1;
+              const a = (i / 10) * Math.PI * 2 + i;
+              return (
+                <circle key={`sp${i}`} cx={550 + Math.cos(a) * t * 130} cy={275 + Math.sin(a) * t * 100}
+                  r={4 * (1 - t)} fill={i % 2 ? "#ffe070" : "#7ad8ff"} opacity={1 - t} />
+              );
+            })}
+          </g>
+        )}
+
+        {/* 电子雪崩动画 */}
+        {avalanche && Array.from({ length: 12 }).map((_, i) => {
+          const phase = ((f - 105) * 0.025 + i * 0.083) % 1;
+          const x = 505 + phase * 90;
+          const y = 240 + (i % 4) * 24 + Math.sin(f * 0.3 + i * 1.7) * 14;
+          return (
+            <g key={`el${i}`}>
+              <circle cx={x} cy={y} r={7} fill={C.cyan} opacity={0.85} />
+              <text x={x} y={y + 5} textAnchor="middle" fill="#04121e" fontSize={13} fontWeight={900}>e⁻</text>
+            </g>
+          );
+        })}
+
+        {/* 温度标注 */}
+        {breakout && (
+          <g>
+            <text x={550} y={430} textAnchor="middle" fill={C.orange} fontSize={32} fontWeight={800} fontFamily={F}>
+              局部温度 ≈ 1000 ℃ 以上
+            </text>
+            <text x={550} y={478} textAnchor="middle" fill={C.sub} fontSize={24} fontFamily={F}>
+              高能电子碰撞气体分子 → 电离 → 导电通道
+            </text>
+          </g>
+        )}
+      </svg>
+
+      {/* 右侧数据 */}
+      <KPI label="击穿场强（空气）" value="3×10⁶" unit="V/m" color={C.gold} top={330} left={1250} delay={30} />
+      <KPI label="火花通道温度" value="1000+" unit="℃" color={C.orange} top={475} left={1250} delay={60} />
+      <KPI label="放电持续时间" value="≈1" unit="μs" color={C.cyan} top={620} left={1250} delay={90} />
+
+      <Caption text="电荷越积越多，两极间电压迅速攀升" delay={10} />
+      <Caption text="场强超过空气击穿值，电子雪崩式电离形成导电通道" delay={95} />
+      <Caption text="一次微小的火花，局部温度可达上千度" delay={185} />
+    </AbsoluteFill>
+  );
+};
+
+/* ============================================================
+   幕3：化学 · 气体燃烧的链式反应
+   ============================================================ */
+const SceneChem = () => {
+  const f = useCurrentFrame();
+  const ignite = f > 35;
+  const flameGrow = interpolate(f, [40, 80], [0, 1], clamp);
+  const flicker = 0.88 + 0.12 * Math.sin(f * 1.9);
+
+  return (
+    <AbsoluteFill>
+      <ActLabel num="03" title="燃烧化学 · 链式反应" color={C.red} />
+      <div style={{ position: "absolute", top: 130, width: "100%", textAlign: "center" }}>
+        <BigTitle text="从分子活化到持续燃烧" size={70} color={mix(C.white, C.orange, 0.3)} />
+      </div>
+
+      {/* 左：分子反应动画 */}
+      <svg viewBox="0 0 820 600" width="820" height="600" style={{ position: "absolute", left: 80, top: 290 }}>
+        {/* 反应物分子（丁烷 C4H10 简化 + O2） */}
+        {Array.from({ length: 5 }).map((_, i) => {
+          const t = f / 30;
+          const x = 100 + (i % 3) * 130 + Math.sin(t * 0.8 + i * 2) * 22;
+          const y = 100 + Math.floor(i / 3) * 110 + Math.cos(t * 0.6 + i) * 16;
+          const reacted = ignite && f > 50 + i * 10;
+          if (reacted) return null;
+          return (
+            <g key={`m${i}`}>
+              <circle cx={x} cy={y} r={30} fill="rgba(74,142,255,0.7)" />
+              <text x={x} y={y + 8} textAnchor="middle" fill="#fff" fontSize={17} fontWeight={800}>C₄H₁₀</text>
+              <circle cx={x + 62} cy={y - 14} r={22} fill="rgba(255,94,120,0.7)" />
+              <text x={x + 62} y={y - 6} textAnchor="middle" fill="#fff" fontSize={16} fontWeight={800}>O₂</text>
+            </g>
+          );
+        })}
+
+        {/* 活化中间体（自由基） */}
+        {ignite && f > 45 && f < 130 && Array.from({ length: 4 }).map((_, i) => {
+          const t = (f - 45) / 85;
+          const x = 220 + i * 110 + Math.sin(f * 0.15 + i * 2) * 30;
+          const y = 260 + Math.cos(f * 0.12 + i * 1.7) * 24;
+          return (
+            <g key={`r${i}`} opacity={Math.sin(t * Math.PI)}>
+              <circle cx={x} cy={y} r={17} fill="rgba(255,194,71,0.8)" />
+              <text x={x} y={y + 6} textAnchor="middle" fill="#402000" fontSize={14} fontWeight={900}>·OH</text>
+            </g>
+          );
+        })}
+
+        {/* 生成物 CO2 + H2O */}
+        {ignite && f > 120 && Array.from({ length: 5 }).map((_, i) => {
+          const t = Math.min(1, (f - 120 - i * 8) / 40);
+          if (t <= 0) return null;
+          const x = 100 + (i % 3) * 130 + t * 60;
+          const y = 100 + Math.floor(i / 3) * 110 - t * 30;
+          return (
+            <g key={`p${i}`} opacity={t}>
+              <circle cx={x} cy={y} r={26} fill="rgba(63,227,161,0.7)" />
+              <text x={x} y={y + 7} textAnchor="middle" fill="#fff" fontSize={15} fontWeight={800}>CO₂</text>
+              <circle cx={x + 56} cy={y + 22} r={20} fill="rgba(120,190,255,0.7)" />
+              <text x={x + 56} y={y + 29} textAnchor="middle" fill="#fff" fontSize={14} fontWeight={800}>H₂O</text>
+            </g>
+          );
+        })}
+
+        {/* 火焰 */}
+        {ignite && (
+          <g opacity={flameGrow * flicker} transform={`translate(410,480) scale(${0.6 + flameGrow * 0.4})`}>
+            <ellipse cx={0} cy={-40} rx={70} ry={115} fill="rgba(255,140,40,0.25)" />
+            <ellipse cx={0} cy={-30} rx={48} ry={88} fill="rgba(255,190,70,0.42)" />
+            <ellipse cx={0} cy={-14} rx={27} ry={55} fill="rgba(255,240,190,0.7)" />
+          </g>
+        )}
+
+        {/* 箭头 */}
+        <g opacity={ignite ? 1 : 0}>
+          <path d="M 330 300 L 330 410" stroke={C.orange} strokeWidth={5} />
+          <polygon points="318,392 342,392 330,415" fill={C.orange} />
+          <text x={345} y={365} fill={C.orange} fontSize={22} fontWeight={700} fontFamily={F}>点燃</text>
+        </g>
+      </svg>
+
+      {/* 右：反应方程式 + 说明 */}
+      <div style={{ position: "absolute", right: 100, top: 310, width: 700 }}>
+        {/* 方程式卡片 */}
+        <div style={{
+          background: "rgba(16,26,50,0.9)", border: "1px solid rgba(255,122,46,0.35)",
+          borderRadius: 20, padding: "30px 36px",
+          opacity: interpolate(f, [15, 35], [0, 1], clamp),
+        }}>
+          <div style={{ color: C.sub, fontSize: 22, letterSpacing: 5, marginBottom: 14 }}>燃烧反应（以丁烷为例）</div>
+          <div style={{ color: C.gold, fontSize: 38, fontWeight: 900, fontFamily: "monospace", lineHeight: 1.7 }}>
+            2C₄H₁₀ + 13O₂ → 8CO₂ + 10H₂O
+          </div>
+          <div style={{ color: C.green, fontSize: 26, marginTop: 14, fontWeight: 700 }}>
+            放出大量热量（ΔH &lt; 0）
+          </div>
+        </div>
+
+        {[
+          { t: "火花提供活化能，打断 C–H 与 O=O 化学键", d: 55, c: C.orange },
+          { t: "产生高活性自由基（·OH、·H、·O）", d: 95, c: C.gold },
+          { t: "自由基不断再生 → 链式反应持续进行", d: 140, c: C.red },
+          { t: "化学能 → 热能 + 光能：稳定的火焰", d: 185, c: C.green },
+        ].map((item, i) => {
+          const s = spring({ frame: f - item.d, config: { damping: 13, stiffness: 115 }, durationInFrames: 22 });
+          return (
+            <div key={i} style={{
+              opacity: Math.min(1, s * 1.5), transform: `translateX(${(1 - s) * 32}px)`,
+              marginTop: 24, display: "flex", gap: 15, alignItems: "flex-start",
+            }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: item.c, marginTop: 12, flexShrink: 0, boxShadow: `0 0 10px ${item.c}` }} />
+              <div style={{ color: item.c, fontSize: 30, fontWeight: 700, lineHeight: 1.55 }}>{item.t}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Caption text="火花的高温打断了丁烷与氧气的化学键" delay={15} />
+      <Caption text="自由基引发链式反应，持续放出热量和光" delay={130} />
+    </AbsoluteFill>
+  );
+};
+
+/* ============================================================
+   幕4：总结 + 谢谢观看
+   ============================================================ */
+const SceneEnd = () => {
+  const f = useCurrentFrame();
+  const o1 = interpolate(f, [10, 35], [0, 1], clamp);
+  const o2 = interpolate(f, [55, 85], [0, 1], clamp);
+  const o3 = interpolate(f, [120, 150], [0, 1], clamp);
+
+  return (
+    <AbsoluteFill>
+      <div style={{ position: "absolute", top: 130, width: "100%", textAlign: "center" }}>
+        <BigTitle text="一根打火机 = 物理 + 化学" size={76} />
+      </div>
+
+      {/* 流程总结 */}
+      <div style={{ position: "absolute", top: 330, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 30, opacity: o1, transform: `translateY(${interpolate(f, [10, 35], [30, 0], clamp)}px)` }}>
+        {[
+          { icon: "⚙", t: "机械能", s: "手指按压", c: C.cyan },
+          { icon: "⚡", t: "电能", s: "压电效应", c: C.gold },
+          { icon: "✦", t: "热能", s: "气体放电", c: C.orange },
+          { icon: "🔥", t: "光能+热能", s: "链式燃烧", c: C.red },
+        ].map((item, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ alignSelf: "center", color: C.sub, fontSize: 40 }}>→</div>}
+            <div style={{
+              background: "rgba(16,26,50,0.9)", border: `2px solid ${item.c}55`,
+              borderRadius: 22, padding: "28px 34px", textAlign: "center", width: 260,
+            }}>
+              <div style={{ fontSize: 52 }}>{item.icon}</div>
+              <div style={{ color: item.c, fontSize: 32, fontWeight: 900, marginTop: 10 }}>{item.t}</div>
+              <div style={{ color: C.sub, fontSize: 22, marginTop: 8 }}>{item.s}</div>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* 升华 */}
+      <div style={{
+        position: "absolute", top: 720, width: "100%", textAlign: "center",
+        opacity: o2,
+      }}>
+        <div style={{ color: C.white, fontSize: 42, fontWeight: 700, letterSpacing: 4, lineHeight: 1.8 }}>
+          微观世界的一次电荷分离，<span style={{ color: C.gold }}>点亮了宏观世界的火焰</span>
+        </div>
+        <div style={{ color: C.sub, fontSize: 28, marginTop: 20, letterSpacing: 6 }}>
+          物理赋予能量 · 化学释放光芒
         </div>
       </div>
-    </div>
-  );
-};
 
-const TitleCard = () => {
-  const f = useCurrentFrame();
-  if (f > 140) return null;
-  const o = Math.min(interpolate(f, [5, 30], [0, 1], clamp), interpolate(f, [110, 140], [1, 0], clamp));
-  return (
-    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", opacity: o }}>
-      <div style={{ fontFamily: F, fontWeight: 900, fontSize: 100, color: "#fff", letterSpacing: 10, textShadow: "0 0 50px rgba(0,180,255,0.5),0 12px 40px rgba(0,0,0,0.8)" }}>
-        我的人生函数图像
+      {/* 谢谢观看 */}
+      <div style={{
+        position: "absolute", top: 890, width: "100%", textAlign: "center",
+        opacity: o3, transform: `scale(${interpolate(f, [120, 150], [0.88, 1], clamp)})`,
+      }}>
+        <div style={{ color: "rgba(255,255,255,0.9)", fontSize: 62, fontWeight: 900, letterSpacing: 22, textShadow: "0 0 30px rgba(255,200,100,0.3)" }}>
+          谢 谢 观 看
+        </div>
       </div>
-      <div style={{ marginTop: 22, fontFamily: F, fontSize: 38, color: "rgba(180,210,255,0.85)", letterSpacing: 14 }}>
-        一个短视频创作者的成长曲线
-      </div>
+
+      <Caption text="下一次按动打火机时，想想这束火花背后的科学" delay={20} />
     </AbsoluteFill>
   );
 };
 
-const EndCard = () => {
-  const f = useCurrentFrame();
-  const o1 = interpolate(f, [1930, 1965], [0, 1], clamp);
-  const o2 = interpolate(f, [1995, 2035], [0, 1], clamp);
-  const o3 = interpolate(f, [2130, 2170], [0, 1], clamp);
-  return (
-    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-      <div style={{
-        opacity: o1, fontFamily: F, fontWeight: 900, fontSize: 76, color: "#dceaff", letterSpacing: 6,
-        textShadow: "0 0 40px rgba(0,180,255,0.4)",
-        transform: `translateY(${interpolate(f, [1930, 1965], [30, 0], clamp)}px)`,
-      }}>
-        从对嘴型少年，到真正的创作者
-      </div>
-      <div style={{
-        marginTop: 36, opacity: o2, fontFamily: F, fontWeight: 900, fontSize: 92,
-        color: "#ffd76a", letterSpacing: 8,
-        textShadow: "0 0 60px rgba(255,200,80,0.5),0 12px 40px rgba(0,0,0,0.8)",
-        transform: `scale(${interpolate(f, [1995, 2035], [0.88, 1], clamp)})`,
-      }}>
-        每一次跌落，都是为了下一次跃升
-      </div>
-      <div style={{
-        marginTop: 70, opacity: o3,
-        fontFamily: F, fontWeight: 900, fontSize: 68,
-        color: "rgba(255,255,255,0.9)", letterSpacing: 24,
-        textShadow: "0 0 30px rgba(255,200,100,0.3)",
-      }}>
-        谢 谢 观 看
-      </div>
-    </AbsoluteFill>
-  );
-};
+/* ============================================================
+   辅助函数
+   ============================================================ */
+function mix(a, b, t) {
+  const p = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const [r1, g1, b1] = p(a);
+  const [r2, g2, b2] = p(b);
+  return `rgb(${Math.round(r1 + (r2 - r1) * t)},${Math.round(g1 + (g2 - g1) * t)},${Math.round(b1 + (b2 - b1) * t)})`;
+}
 
-/* ========== 巅峰金色流光 + 光粒子爆发 ========== */
-const GoldOverlay = () => {
-  const f = useCurrentFrame();
-  const g = goldIntensity(f);
-  if (g <= 0.01) return null;
-
-  /* 光粒子爆发：1650帧前后从屏幕中心四散 */
-  const burstFrame = 1650;
-  const burstT = (f - burstFrame) / 120;
-  const showBurst = burstT > -0.15 && burstT < 1.2;
-
-  return (
-    <>
-      {/* 金色光晕 */}
-      <AbsoluteFill style={{
-        background: `radial-gradient(ellipse at 55% 35%, rgba(255,200,50,${0.18 * g}) 0%, rgba(255,160,30,${0.08 * g}) 40%, transparent 70%)`,
-        pointerEvents: "none",
-      }} />
-
-      {/* 流光条纹 */}
-      {Array.from({ length: 9 }).map((_, i) => {
-        const y = ((f * 3.5 + i * 170) % 1400) - 200;
-        const w = 350 + Math.sin(f * 0.1 + i * 1.5) * 250;
-        return (
-          <div key={i} style={{
-            position: "absolute",
-            left: -200 + Math.sin(f * 0.05 + i * 2) * 500,
-            top: y,
-            width: w * 2.2,
-            height: 3 + Math.sin(f * 0.14 + i) * 2.5,
-            background: `linear-gradient(90deg, transparent, rgba(255,210,80,${0.22 * g}), rgba(255,255,220,${0.32 * g}), rgba(255,210,80,${0.22 * g}), transparent)`,
-            transform: `rotate(${-22 + i * 5.5}deg)`,
-            filter: `blur(${2 + Math.sin(i * 2) * 1.5}px)`,
-            pointerEvents: "none",
-          }} />
-        );
-      })}
-
-      {/* 常驻金色粒子 */}
-      {Array.from({ length: 28 }).map((_, i) => {
-        const seed = i * 7.31;
-        const x = ((Math.sin(f * 0.018 + seed) * 0.5 + 0.5) * 1920);
-        const y = ((f * (1.0 + (i % 5) * 0.5) + i * 210) % 1350) - 120;
-        const r = 2 + (i % 4) * 2.5;
-        const alpha = g * (0.3 + 0.7 * Math.abs(Math.sin(f * 0.09 + seed * 2.1)));
-        return (
-          <div key={`gp${i}`} style={{
-            position: "absolute", left: x, top: y,
-            width: r * 2, height: r * 2, borderRadius: "50%",
-            background: i % 3 === 0 ? "rgba(255,230,120,0.9)" : i % 3 === 1 ? "rgba(255,255,255,0.8)" : "rgba(255,180,60,0.85)",
-            boxShadow: `0 0 ${r * 8}px rgba(255,200,80,${0.5 * g})`,
-            opacity: alpha, pointerEvents: "none",
-          }} />
-        );
-      })}
-
-      {/* 巅峰爆发粒子（1650帧四散） */}
-      {showBurst && Array.from({ length: 36 }).map((_, i) => {
-        const angle = (i / 36) * Math.PI * 2 + i * 0.3;
-        const speed = 300 + (i % 5) * 180;
-        const dist = Math.max(0, burstT) * speed;
-        const x = 960 + Math.cos(angle) * dist * 1.8;
-        const y = 540 + Math.sin(angle) * dist;
-        const life = Math.max(0, 1 - burstT * 0.9);
-        const r = (3 + (i % 4) * 3) * life;
-        return (
-          <div key={`bp${i}`} style={{
-            position: "absolute", left: x, top: y,
-            width: r * 2, height: r * 2, borderRadius: "50%",
-            background: i % 3 === 0 ? "#ffe080" : i % 3 === 1 ? "#fff" : "#ffaa30",
-            boxShadow: `0 0 ${r * 12}px rgba(255,200,80,${0.7 * life})`,
-            opacity: life * 0.85, pointerEvents: "none",
-          }} />
-        );
-      })}
-
-      {/* 巅峰光环（从中心扩散的圆环） */}
-      {showBurst && [0, 1, 2].map((ring) => {
-        const rt = burstT - ring * 0.18;
-        if (rt < 0) return null;
-        const radius = rt * 900;
-        const ringOpacity = Math.max(0, (1 - rt * 1.2) * 0.5);
-        return (
-          <div key={`ring${ring}`} style={{
-            position: "absolute", left: 960 - radius, top: 540 - radius,
-            width: radius * 2, height: radius * 2,
-            borderRadius: "50%",
-            border: `3px solid rgba(255,210,100,${ringOpacity})`,
-            boxShadow: `0 0 ${20 * ringOpacity}px rgba(255,200,80,${ringOpacity * 0.5})`,
-            pointerEvents: "none",
-          }} />
-        );
-      })}
-    </>
-  );
-};
-
-/* ========== 活力粒子（全程） ========== */
-const AliveParticles = () => {
-  const f = useCurrentFrame();
-  return (
-    <>
-      {Array.from({ length: 20 }).map((_, i) => {
-        const seed = i * 13.7;
-        const x = ((Math.sin(f * 0.012 + seed) * 0.5 + 0.5) * 1920);
-        const y = ((f * (0.4 + (i % 3) * 0.35) + i * 340) % 1250) - 80;
-        const r = 1.5 + (i % 3) * 1.8;
-        const alpha = 0.12 + 0.18 * Math.abs(Math.sin(f * 0.06 + seed));
-        return (
-          <div key={`ap${i}`} style={{
-            position: "absolute", left: x, top: y,
-            width: r * 2, height: r * 2, borderRadius: "50%",
-            background: i % 2 ? "rgba(100,180,255,0.7)" : "rgba(255,255,255,0.6)",
-            opacity: alpha, pointerEvents: "none",
-          }} />
-        );
-      })}
-    </>
-  );
-};
-
-const ProgressBar = () => {
-  const f = useCurrentFrame();
-  return (
-    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 5, background: "rgba(255,255,255,0.08)" }}>
-      <div style={{ height: "100%", width: `${(f / TOTAL) * 100}%`, background: "linear-gradient(90deg,#00d4ff,#ff44aa)" }} />
-    </div>
-  );
-};
-
-const GraphView = () => {
-  const f = useCurrentFrame();
-  const cam = camAt(f);
-  const shake = shakeAt(f);
-  const prog = drawP(f);
-  const tx = 960 - cam.cx * cam.s + shake.sx;
-  const ty = 540 - cam.cy * cam.s + shake.sy;
-
-  const penX = prog * SW;
-  let penY = pts[0][1];
-  for (let i = 0; i < pts.length - 1; i++) {
-    if (penX >= pts[i][0] && penX <= pts[i + 1][0]) {
-      const t = (penX - pts[i][0]) / (pts[i + 1][0] - pts[i][0]);
-      penY = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t;
-      break;
-    }
-  }
-
-  /* 曲线呼吸脉动 */
-  const breathe = 1 + Math.sin(f * 0.04) * 0.08;
-
-  return (
-    <AbsoluteFill style={{ overflow: "hidden" }}>
-      <div style={{
-        position: "absolute", left: 0, top: 0, width: SW, height: SH,
-        transform: `translate(${tx}px,${ty}px) scale(${cam.s})`, transformOrigin: "0 0",
-      }}>
-        <svg width={SW} height={SH} style={{ position: "absolute", left: 0, top: 0 }}>
-          <defs>
-            <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#00d4ff" />
-              <stop offset="50%" stopColor="#66aaff" />
-              <stop offset="100%" stopColor="#ff44aa" />
-            </linearGradient>
-            <linearGradient id="cf" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#0088ff" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#0088ff" stopOpacity="0.01" />
-            </linearGradient>
-            <clipPath id="dc"><rect x={0} y={0} width={Math.max(1, prog * SW)} height={SH} /></clipPath>
-          </defs>
-
-          {/* 网格 */}
-          {YL.map(({ y }, i) => <line key={`gy${i}`} x1={0} y1={y} x2={SW} y2={y} stroke="rgba(100,150,255,0.07)" strokeWidth={1.5} />)}
-          {XL.map(({ x }, i) => <line key={`gx${i}`} x1={x} y1={0} x2={x} y2={YB} stroke="rgba(100,150,255,0.07)" strokeWidth={1.5} />)}
-
-          <path d={fillD} fill="url(#cf)" clipPath="url(#dc)" />
-
-          {/* 外层辉光（呼吸脉动） */}
-          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={35 * breathe} strokeLinecap="round"
-            opacity={0.1 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
-          {/* 中层辉光 */}
-          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={18 * breathe} strokeLinecap="round"
-            opacity={0.18 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
-          {/* 主曲线 */}
-          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round"
-            pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
-
-          {/* 曲线上的流动光点 */}
-          {prog > 0.02 && Array.from({ length: 8 }).map((_, i) => {
-            const dotProg = ((f * 0.004 + i * 0.13) % 1) * prog;
-            const dx = dotProg * SW;
-            let dy = pts[0][1];
-            for (let j = 0; j < pts.length - 1; j++) {
-              if (dx >= pts[j][0] && dx <= pts[j + 1][0]) {
-                const t = (dx - pts[j][0]) / (pts[j + 1][0] - pts[j][0]);
-                dy = pts[j][1] + (pts[j + 1][1] - pts[j][1]) * t;
-                break;
-              }
-            }
-            return (
-              <circle key={`fd${i}`} cx={dx} cy={dy} r={6 + Math.sin(f * 0.15 + i * 2) * 3}
-                fill={i % 2 ? "rgba(100,220,255,0.6)" : "rgba(255,150,200,0.5)"} />
-            );
-          })}
-
-          {/* 笔尖光点 */}
-          {prog > 0.01 && prog < 0.99 && (
-            <g>
-              <circle cx={penX} cy={penY} r={30 + Math.sin(f * 0.35) * 15} fill="rgba(100,200,255,0.1)" />
-              <circle cx={penX} cy={penY} r={18 + Math.sin(f * 0.5) * 5} fill="rgba(150,220,255,0.15)" />
-              <circle cx={penX} cy={penY} r={14} fill="#fff" opacity={0.85} />
-              <circle cx={penX} cy={penY} r={7} fill="#00d4ff" />
-            </g>
-          )}
-
-          {/* 坐标轴标签 */}
-          {YL.map(({ y, t }, i) => <text key={`yl${i}`} x={80} y={y + 18} fill="rgba(150,180,230,0.55)" fontFamily={F} fontSize={85} fontWeight={700}>{t}</text>)}
-          {XL.map(({ x, t }, i) => <text key={`xl${i}`} x={x} y={YB + 130} fill="rgba(150,180,230,0.55)" fontFamily={F} fontSize={85} fontWeight={700} textAnchor="middle">{t}</text>)}
-
-          {/* 标注 */}
-          {ANNOS.map((a, i) => {
-            if (f < a.f || f >= a.f + a.d) return null;
-            const pop = spring({ frame: f - a.f, config: { damping: 11, stiffness: 120 }, durationInFrames: 20 });
-            const fade = interpolate(f, [a.f + a.d - 15, a.f + a.d], [1, 0], clamp);
-            const o = fade * Math.min(1, pop * 1.5);
-            const sc = 0.3 + pop * 0.7;
-            const tw = a.t.length * a.sz * 0.55 + 40;
-            return (
-              <g key={`an${i}`} opacity={o} transform={`translate(${a.x},${a.y}) scale(${sc})`}>
-                <rect x={-tw} y={-a.sz * 0.72} width={tw * 2} height={a.sz * 1.44} rx={a.sz * 0.16} fill="rgba(8,12,28,0.82)" stroke={a.c + "44"} strokeWidth={4} />
-                <text x={0} y={a.sz * 0.14} textAnchor="middle" fill={a.c} fontFamily={F} fontSize={a.sz} fontWeight={900}>{a.t}</text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-const LifeGraph = () => {
+/* ============================================================
+   主合成
+   ============================================================ */
+const PiezoLighter = () => {
   const f = useCurrentFrame();
   const [handle] = React.useState(() => delayRender("fonts"));
   React.useEffect(() => {
@@ -495,21 +640,25 @@ const LifeGraph = () => {
   }, [handle]);
 
   return (
-    <AbsoluteFill style={{ background: "linear-gradient(135deg,#060a18 0%,#0c1228 50%,#0a0e1e 100%)", fontFamily: F }}>
-      <GraphView />
-      <AliveParticles />
-      <GoldOverlay />
-      <SubBar />
-      <TitleCard />
-      <EndCard />
-      <ProgressBar />
-      <AbsoluteFill style={{ pointerEvents: "none", background: "radial-gradient(ellipse at center,transparent 55%,rgba(2,4,12,0.5) 100%)" }} />
+    <AbsoluteFill style={{ background: C.bg, fontFamily: F }}>
+      <Backdrop />
+      <Composition>
+        <Sequence from={0} durationInFrames={150}><SceneHook /></Sequence>
+        <Sequence from={150} durationInFrames={300}><ScenePiezo /></Sequence>
+        <Sequence from={450} durationInFrames={330}><SceneSpark /></Sequence>
+        <Sequence from={780} durationInFrames={300}><SceneChem /></Sequence>
+        <Sequence from={1080} durationInFrames={270}><SceneEnd /></Sequence>
+      </Composition>
+      <AbsoluteFill style={{ pointerEvents: "none", background: "radial-gradient(ellipse at center, transparent 52%, rgba(2,4,12,0.5) 100%)" }} />
     </AbsoluteFill>
   );
 };
 
+/* ============================================================
+   注册
+   ============================================================ */
 export const RemotionRoot = () => (
-  <Composition id="ShortCircuitVideo" component={LifeGraph} durationInFrames={TOTAL} fps={30} width={1920} height={1080} />
+  <Composition id="ShortCircuitVideo" component={PiezoLighter} durationInFrames={TOTAL} fps={30} width={1920} height={1080} />
 );
 
 registerRoot(RemotionRoot);
