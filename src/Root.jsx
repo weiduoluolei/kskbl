@@ -1,275 +1,388 @@
-// src/Root.jsx — 人生函数图像（短视频创作之路）
-// 合成 id: ShortCircuitVideo
+// src/Root.jsx — 我的人生函数图像 v2
+// 修改：镜头停顿变速匹配字幕 / 大幅震动匹配事件 / 巅峰金色流光 / 谢谢观看
 
 import React from "react";
 import {
   AbsoluteFill,
   Composition,
   interpolate,
+  spring as _spring,
   useCurrentFrame,
   registerRoot,
   delayRender,
   continueRender,
 } from "remotion";
 
+const spring = (o) => _spring({ fps: 30, ...o });
+
 if (typeof document !== "undefined" && !document.getElementById("lf")) {
-  const s = document.createElement("style");
-  s.id = "lf";
-  s.textContent =
+  const st = document.createElement("style");
+  st.id = "lf";
+  st.textContent =
     "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');";
-  document.head.appendChild(s);
+  document.head.appendChild(st);
 }
 
 const F = '"Noto Sans SC","Noto Sans CJK SC",sans-serif';
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-/* ============ 曲线关键点（月份, 粉丝数） ============ */
-const DATA = [
-  [0, 20], [3, 22], [6, 35], [9, 50], [10, 60], [11, 8000], [12, 16000],
-  [14, 13000], [18, 11000], [30, 10000], [44, 9500], [55, 9800], [63, 10500],
-  [68, 13000], [71, 15500], [74, 18000], [77, 19500], [80, 25000], [82, 38000], [84, 38500],
+const TOTAL = 2250;
+const SW = 12000;
+const SH = 5000;
+const YB = 4600;
+const YT = 400;
+
+const FD = [
+  [0,20],[.015,22],[.03,26],[.045,31],[.06,36],[.075,40],[.09,43],[.105,46],
+  [.12,48],[.135,50],[.15,52],
+  [.16,200],[.165,2000],[.17,6000],[.175,11000],[.18,14500],[.185,15800],[.19,16000],
+  [.21,15900],[.24,15700],[.27,15500],[.3,15350],[.35,15150],[.4,15000],
+  [.45,14850],[.5,14650],[.55,14450],[.6,14300],[.65,14200],[.68,14150],[.71,14080],
+  [.725,15500],[.74,16800],[.755,17600],[.77,17950],[.79,18100],
+  [.82,18250],[.85,18400],[.875,18550],[.885,18800],
+  [.895,21000],[.905,26000],[.915,32000],[.925,35500],[.935,37200],[.945,37900],
+  [.955,38100],[.97,38150],[1,38200],
 ];
 
-const Y_MAX = 42000;
-const MONTHS = 84;
+const pts = FD.map(([p, fan]) => [p * SW, YB - (fan / 40000) * (YB - YT)]);
 
-// Catmull-Rom 样条
-const splinePath = (pts, x0, y0, w, h) => {
-  const p = pts.map(([m, v]) => [
-    x0 + (m / MONTHS) * w,
-    y0 + h - (v / Y_MAX) * h,
-  ]);
-  if (p.length < 2) return "";
-  let d = `M${p[0][0]},${p[0][1]}`;
-  for (let i = 0; i < p.length - 1; i++) {
-    const p0 = p[Math.max(0, i - 1)], p1 = p[i], p2 = p[i + 1], p3 = p[Math.min(p.length - 1, i + 2)];
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
-    d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+function smoothPath(pp) {
+  if (pp.length < 2) return "";
+  let d = `M${pp[0][0].toFixed(1)},${pp[0][1].toFixed(1)}`;
+  for (let i = 0; i < pp.length - 1; i++) {
+    const p0 = pp[Math.max(0, i - 1)], p1 = pp[i], p2 = pp[i + 1], p3 = pp[Math.min(pp.length - 1, i + 2)];
+    d += ` C${(p1[0]+(p2[0]-p0[0])/6).toFixed(1)},${(p1[1]+(p2[1]-p0[1])/6).toFixed(1)} ${(p2[0]-(p3[0]-p1[0])/6).toFixed(1)},${(p2[1]-(p3[1]-p1[1])/6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
   }
   return d;
-};
+}
+const curveD = smoothPath(pts);
+const fillD = curveD + ` L${SW},${YB} L0,${YB} Z`;
 
-/* ============ 字幕段落（帧范围 + 文字 + 高潮标记） ============ */
-const CAPS = [
-  { from: 0, to: 130, text: "2019年10月，我注册了这个抖音账号" },
-  { from: 130, to: 250, text: "那时才几岁，只会对着沙雕视频的音频对嘴型" },
-  { from: 250, to: 370, text: "没几个人看，粉丝只有20多" },
-  { from: 370, to: 500, text: "2020年，后来学会了录屏，但不会剪辑" },
-  { from: 500, to: 590, text: "然后随手发了一个特效视频——火了！", spike: "up" },
-  { from: 590, to: 710, text: "2.2万点赞，粉丝从20多暴涨到1.6万" },
-  { from: 710, to: 830, text: "但之后，又一直不温不火", spike: "down" },
-  { from: 830, to: 1050, text: "2020到2025年，我根本没想过在自媒体涉足" },
-  { from: 1050, to: 1170, text: "2025年，想要影石AcePro相机，暑假开始做特效" },
-  { from: 1170, to: 1280, text: "宣传特效的视频是火了，但没几个人用" },
-  { from: 1280, to: 1380, text: "依旧赚不了多少钱，但粉丝涨到了1.8万" },
-  { from: 1380, to: 1540, text: "2026年6月，我开始在星图上面接小游戏广告" },
-  { from: 1540, to: 1720, text: "没想到我的风格和搞笑节奏引起共鸣，视频爆火！", spike: "up" },
-  { from: 1720, to: 1870, text: "截止现在，我的粉丝已经3.8万" },
-  { from: 1870, to: 2020, text: "同时我也挣到了钱，买到了梦寐以求的相机" },
-  { from: 2020, to: 2220, text: "从一个对嘴型的少年，到3.8万粉丝的创作者" },
-  { from: 2220, to: 2450, text: "人生就是一条函数曲线，有起有落，但一直在走", end: true },
+/* ========== 相机：停顿 + 变速，对齐字幕节奏 ========== */
+const CAM = [
+  // 开场：微距看起点，停住
+  { f: 0, cx: 200, cy: 4450, s: 2.6 },
+  { f: 60, cx: 250, cy: 4460, s: 2.5 },   // 慢慢动
+  { f: 130, cx: 250, cy: 4460, s: 2.5 },   // 停！对嘴型
+  // 缓慢平移看2020
+  { f: 330, cx: 800, cy: 4490, s: 2.1 },
+  { f: 475, cx: 900, cy: 4480, s: 2.0 },   // 停！录屏不温不火
+  // 突然拉升看暴涨！
+  { f: 560, cx: 1200, cy: 4200, s: 1.8 },  // 加速
+  { f: 650, cx: 2100, cy: 2800, s: 1.1 },  // 爆拉到暴涨点
+  { f: 800, cx: 2200, cy: 2650, s: 1.05 }, // 停！看暴涨
+  // 缓慢看下滑
+  { f: 985, cx: 3200, cy: 3200, s: 1.0 },
+  { f: 1125, cx: 4200, cy: 3150, s: 1.0 }, // 停！2020-2025
+  // 到2025特效
+  { f: 1330, cx: 8200, cy: 2900, s: 1.15 },
+  { f: 1415, cx: 8600, cy: 2750, s: 1.1 }, // 停！特效火了
+  { f: 1495, cx: 8900, cy: 2650, s: 1.05 }, // 停！1.8万
+  // 爆拉到巅峰
+  { f: 1570, cx: 9800, cy: 2000, s: 0.75 }, // 加速！
+  { f: 1650, cx: 10800, cy: 900, s: 0.5 },  // 冲上巅峰
+  { f: 1820, cx: 11000, cy: 750, s: 0.48 }, // 停！巅峰3.8万
+  // 拉远看全图
+  { f: 2000, cx: 7500, cy: 2400, s: 0.35 },
+  { f: 2120, cx: 6500, cy: 2600, s: 0.32 },
+  { f: 2250, cx: 6200, cy: 2700, s: 0.3 },
 ];
 
-const TOTAL = 2500;
-
-/* ============ 相机抖动 ============ */
-const SHAKE_FRAMES = [510, 520, 530, 720, 730, 740, 1560, 1570, 1580, 1590];
-const getShake = (f) => {
-  for (const sf of SHAKE_FRAMES) {
-    const dist = f - sf;
-    if (dist >= -5 && dist <= 20) {
-      const intensity = dist < 0 ? 1 : 1 - dist / 20;
-      return {
-        x: Math.sin(f * 2.7) * 14 * intensity,
-        y: Math.cos(f * 3.1) * 10 * intensity,
-      };
+function camAt(f) {
+  if (f <= CAM[0].f) return { ...CAM[0] };
+  for (let i = 0; i < CAM.length - 1; i++) {
+    const a = CAM[i], b = CAM[i + 1];
+    if (f >= a.f && f <= b.f) {
+      const t = ease((f - a.f) / (b.f - a.f));
+      return { cx: a.cx + (b.cx - a.cx) * t, cy: a.cy + (b.cy - a.cy) * t, s: a.s + (b.s - a.s) * t };
     }
   }
-  return { x: 0, y: 0 };
-};
+  return { ...CAM[CAM.length - 1] };
+}
 
-/* ============ 图表区域 ============ */
-const GRAPH = { x: 120, y: 100, w: 1680, h: 720 };
+/* ========== 大幅镜头震动（贴合事件） ========== */
+function shakeAt(f) {
+  const events = [
+    { f: 560, p: 35, d: 30 },   // 特效视频火了（逼近暴涨）
+    { f: 650, p: 65, d: 50 },   // 粉丝暴涨1.6万（大震动！）
+    { f: 1380, p: 28, d: 25 },  // 特效又火了
+    { f: 1570, p: 45, d: 35 },  // 星图广告开始爆
+    { f: 1650, p: 80, d: 55 },  // 3.8万巅峰（最大震动！）
+  ];
+  let sx = 0, sy = 0;
+  for (const s of events) {
+    const dt = f - s.f;
+    if (dt >= 0 && dt < s.d) {
+      const decay = Math.pow(1 - dt / s.d, 1.6) * s.p;
+      sx += Math.sin(f * 2.7 + s.f * 0.31) * decay;
+      sy += Math.cos(f * 3.3 + s.f * 0.47) * decay * 0.65;
+    }
+  }
+  return { sx, sy };
+}
 
-const GraphStage = () => {
-  const f = useCurrentFrame();
-  const path = splinePath(DATA, GRAPH.x, GRAPH.y, GRAPH.w, GRAPH.h);
-  const drawProg = interpolate(f, [0, 2100], [0, 1], clamp);
-  const curMonth = drawProg * MONTHS;
-  const curVal = interpolate(
-    curMonth,
-    DATA.map(([m]) => m),
-    DATA.map(([, v]) => v)
+function drawP(f) {
+  return interpolate(
+    f,
+    [0, 130, 330, 475, 560, 650, 800, 985, 1125, 1330, 1415, 1495, 1570, 1650, 1820, 2000, 2120],
+    [0, 0.05, 0.11, 0.15, 0.17, 0.19, 0.25, 0.38, 0.52, 0.68, 0.76, 0.83, 0.88, 0.94, 0.97, 0.99, 1],
+    clamp
   );
+}
 
-  return (
-    <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
-      {/* 背景网格 */}
-      {Array.from({ length: 9 }).map((_, i) => (
-        <line key={`h${i}`} x1={GRAPH.x} y1={GRAPH.y + (i * GRAPH.h) / 8} x2={GRAPH.x + GRAPH.w} y2={GRAPH.y + (i * GRAPH.h) / 8}
-          stroke="rgba(80,140,220,0.12)" strokeWidth={1} />
-      ))}
-      {Array.from({ length: 16 }).map((_, i) => (
-        <line key={`v${i}`} x1={GRAPH.x + (i * GRAPH.w) / 15} y1={GRAPH.y} x2={GRAPH.x + (i * GRAPH.w) / 15} y2={GRAPH.y + GRAPH.h}
-          stroke="rgba(80,140,220,0.08)" strokeWidth={1} />
-      ))}
+/* ========== 巅峰金色检测 ========== */
+function goldIntensity(f) {
+  return interpolate(f, [1550, 1650, 1900, 2050], [0, 1, 1, 0], clamp);
+}
 
-      {/* Y轴标签 */}
-      {[0, 10000, 20000, 30000, 40000].map((v, i) => (
-        <text key={i} x={GRAPH.x - 16} y={GRAPH.y + GRAPH.h - (v / Y_MAX) * GRAPH.h + 6}
-          fill="rgba(140,180,230,0.6)" fontSize={22} fontFamily={F} textAnchor="end">
-          {v / 10000}万
-        </text>
-      ))}
-      {/* X轴标签 */}
-      {[2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map((yr, i) => (
-        <text key={i} x={GRAPH.x + (i * GRAPH.w) / 7} y={GRAPH.y + GRAPH.h + 36}
-          fill="rgba(140,180,230,0.55)" fontSize={22} fontFamily={F} textAnchor="middle">
-          {yr}
-        </text>
-      ))}
+/* ========== 字幕 ========== */
+const SUBS = [
+  { t: "2019年10月，我注册了抖音账号", s: 15, e: 135 },
+  { t: "那时才几岁，只会对嘴型演沙雕视频", s: 135, e: 265 },
+  { t: "没几个人看，粉丝只有20多个", s: 265, e: 370 },
+  { t: "2020年，学会了录屏，但不会剪辑", s: 370, e: 480 },
+  { t: "一直处于不温不火的状态……", s: 480, e: 565 },
+  { t: "随手发了一个特效视频", s: 565, e: 650 },
+  { t: "火了！2.2万点赞！", s: 650, e: 760 },
+  { t: "粉丝从20多暴涨到1.6万！", s: 760, e: 870 },
+  { t: "但之后又回到了不温不火……", s: 870, e: 990 },
+  { t: "2020到2025年，没想在自媒体上发展", s: 990, e: 1130 },
+  { t: "2025年，我想要影石AcePro相机", s: 1130, e: 1240 },
+  { t: "暑假开始学做抖音特效赚钱", s: 1240, e: 1330 },
+  { t: "特效视频火了，但没几个人用……", s: 1330, e: 1420 },
+  { t: "不过粉丝涨到了1.8万", s: 1420, e: 1500 },
+  { t: "2026年6月，开始在星图接小游戏广告", s: 1500, e: 1610 },
+  { t: "没想到视频爆火了！", s: 1610, e: 1720 },
+  { t: "截止现在，粉丝3.8万！", s: 1720, e: 1830 },
+  { t: "我也挣到了钱，买到了相机", s: 1830, e: 1930 },
+  { t: "从对嘴型少年，到真正的创作者", s: 1930, e: 2040 },
+  { t: "每一次跌落，都是为了下一次跃升", s: 2040, e: 2140 },
+];
 
-      {/* 面积填充 */}
-      <defs>
-        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4fd1ff" stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#4fd1ff" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#4fd1ff" />
-          <stop offset="30%" stopColor="#ffd76a" />
-          <stop offset="55%" stopColor="#4fd1ff" />
-          <stop offset="80%" stopColor="#ff6b6b" />
-          <stop offset="100%" stopColor="#5ff0c0" />
-        </linearGradient>
-      </defs>
-      <path d={path + ` L${GRAPH.x + GRAPH.w},${GRAPH.y + GRAPH.h} L${GRAPH.x},${GRAPH.y + GRAPH.h} Z`}
-        fill="url(#areaGrad)" opacity={drawProg * 0.7}
-        clipPath="url(#clipReveal)" />
-      <clipPath id="clipReveal">
-        <rect x={GRAPH.x} y={GRAPH.y - 20} width={GRAPH.w * drawProg} height={GRAPH.h + 40} />
-      </clipPath>
+const ANNOS = [
+  { f: 680, x: 2350, y: 2580, t: "2.2万点赞！", c: "#ff4466", sz: 130, d: 200 },
+  { f: 790, x: 2700, y: 2340, t: "粉丝暴涨 1.6万", c: "#ffaa22", sz: 105, d: 200 },
+  { f: 1050, x: 5500, y: 3350, t: "2020-2025 不温不火", c: "#5580aa", sz: 95, d: 360 },
+  { f: 1400, x: 8800, y: 2480, t: "粉丝 1.8万", c: "#44ccff", sz: 110, d: 200 },
+  { f: 1680, x: 11100, y: 700, t: "粉丝 3.8万！", c: "#ff44aa", sz: 260, d: 420 },
+];
 
-      {/* 主曲线（辉光层） */}
-      <path d={path} fill="none" stroke="url(#lineGrad)" strokeWidth={18} strokeLinecap="round"
-        opacity={0.18 * drawProg} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawProg} />
-      {/* 主曲线 */}
-      <path d={path} fill="none" stroke="url(#lineGrad)" strokeWidth={5} strokeLinecap="round"
-        pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawProg} />
+const XL = [
+  { x: 150, t: "2019.10" }, { x: 1500, t: "2020" }, { x: 5000, t: "2022" },
+  { x: 8500, t: "2025" }, { x: 10800, t: "2026" },
+];
+const YL = [
+  { y: 4580, t: "0" }, { y: 3550, t: "1万" }, { y: 2500, t: "2万" },
+  { y: 1450, t: "3万" }, { y: 420, t: "4万" },
+];
 
-      {/* 关键点 */}
-      {[11, 12, 18, 19].map((idx) => {
-        const [m, v] = DATA[idx];
-        const px = GRAPH.x + (m / MONTHS) * GRAPH.w;
-        const py = GRAPH.y + GRAPH.h - (v / Y_MAX) * GRAPH.h;
-        const visible = curMonth >= m;
-        const pop = interpolate(f, [0, 20], [0, 1], clamp);
-        return visible ? (
-          <g key={idx}>
-            <circle cx={px} cy={py} r={18} fill={idx === 19 ? "#5ff0c0" : idx === 18 ? "#ff6b6b" : "#ffd76a"} opacity={0.18} />
-            <circle cx={px} cy={py} r={8} fill={idx === 19 ? "#5ff0c0" : idx === 18 ? "#ff6b6b" : "#ffd76a"} />
-          </g>
-        ) : null;
-      })}
+/* ============================================================ */
 
-      {/* 当前位置光点 */}
-      <circle cx={GRAPH.x + (curMonth / MONTHS) * GRAPH.w}
-        cy={GRAPH.y + GRAPH.h - (curVal / Y_MAX) * GRAPH.h}
-        r={10} fill="#fff" opacity={0.9} />
-      <circle cx={GRAPH.x + (curMonth / MONTHS) * GRAPH.w}
-        cy={GRAPH.y + GRAPH.h - (curVal / Y_MAX) * GRAPH.h}
-        r={22} fill="none" stroke="#fff" strokeWidth={2} opacity={0.25} />
-    </svg>
-  );
-};
-
-/* ============ 字幕条（手机端适配） ============ */
-const SubtitleBar = () => {
+const SubBar = () => {
   const f = useCurrentFrame();
-  const cap = CAPS.find((c) => f >= c.from && f < c.to);
-  if (!cap) return null;
-  const lf = f - cap.from;
-  const inO = interpolate(lf, [0, 14], [0, 1], clamp);
-  const outO = interpolate(lf, [cap.to - cap.from - 12, cap.to - cap.from], [1, 0], clamp);
-  const y = interpolate(lf, [0, 14], [18, 0], clamp);
-  const isEnd = cap.end;
-
+  const c = SUBS.find((s) => f >= s.s && f < s.e);
+  if (!c) return null;
+  const fi = interpolate(f, [c.s, c.s + 12], [0, 1], clamp);
+  const fo = interpolate(f, [c.e - 12, c.e], [1, 0], clamp);
   return (
-    <div style={{
-      position: "absolute", left: 0, right: 0, bottom: 0,
-      display: "flex", justifyContent: "center", paddingBottom: 48,
-      opacity: Math.min(inO, outO), transform: `translateY(${y}px)`,
-      pointerEvents: "none",
-    }}>
+    <div style={{ position: "absolute", bottom: 56, left: 80, right: 80, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
       <div style={{
-        background: isEnd
-          ? "linear-gradient(135deg, rgba(255,180,60,0.92), rgba(255,100,60,0.92))"
-          : "rgba(6,12,28,0.88)",
-        border: isEnd ? "2px solid rgba(255,220,120,0.6)" : "1px solid rgba(100,160,255,0.22)",
-        borderRadius: 18, padding: "18px 36px", maxWidth: 1320,
-        backdropFilter: "blur(6px)",
+        background: "rgba(0,0,0,0.78)", borderRadius: 20, padding: "24px 56px",
+        opacity: Math.min(fi, fo), transform: `translateY(${(1 - fi) * 12}px)`,
+        border: "1px solid rgba(100,160,255,0.15)", maxWidth: "85%",
       }}>
-        <div style={{
-          fontFamily: F, fontWeight: 700,
-          fontSize: isEnd ? 38 : 36,
-          color: isEnd ? "#fff" : "#e4f0ff",
-          letterSpacing: 2, lineHeight: 1.55,
-          textAlign: "center",
-          textShadow: isEnd ? "0 2px 12px rgba(200,80,20,0.6)" : "0 2px 10px rgba(0,0,0,0.7)",
-        }}>
-          {cap.text}
+        <div style={{ fontFamily: F, fontWeight: 700, fontSize: 44, color: "#fff", textAlign: "center", lineHeight: 1.5, letterSpacing: 3 }}>
+          {c.t}
         </div>
       </div>
     </div>
   );
 };
 
-/* ============ 顶部标题 ============ */
-const Header = () => {
+const TitleCard = () => {
   const f = useCurrentFrame();
+  if (f > 140) return null;
+  const o = Math.min(interpolate(f, [5, 30], [0, 1], clamp), interpolate(f, [110, 140], [1, 0], clamp));
   return (
-    <div style={{
-      position: "absolute", top: 30, left: 0, right: 0,
-      display: "flex", justifyContent: "center", gap: 30,
-      opacity: interpolate(f, [0, 30], [0, 1], clamp),
-      pointerEvents: "none",
-    }}>
-      <div style={{
-        fontFamily: F, fontWeight: 900, fontSize: 48,
-        color: "#fff", letterSpacing: 8,
-        textShadow: "0 4px 30px rgba(60,140,255,0.5), 0 2px 12px rgba(0,0,0,0.7)",
-      }}>
+    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", opacity: o }}>
+      <div style={{ fontFamily: F, fontWeight: 900, fontSize: 100, color: "#fff", letterSpacing: 10, textShadow: "0 0 50px rgba(0,180,255,0.5),0 12px 40px rgba(0,0,0,0.8)" }}>
         我的人生函数图像
       </div>
-      <div style={{
-        fontFamily: F, fontSize: 26, color: "rgba(160,200,255,0.7)",
-        letterSpacing: 6, alignSelf: "flex-end", paddingBottom: 6,
-      }}>
-        f(时间) = 粉丝 · 成长 · 坚持
+      <div style={{ marginTop: 22, fontFamily: F, fontSize: 38, color: "rgba(180,210,255,0.85)", letterSpacing: 14 }}>
+        一个短视频创作者的成长曲线
       </div>
-    </div>
-  );
-};
-
-/* ============ 结尾升华层 ============ */
-const EndingOverlay = () => {
-  const f = useCurrentFrame();
-  const start = 2200;
-  if (f < start) return null;
-  const t = interpolate(f, [start, start + 60], [0, 1], clamp);
-  return (
-    <AbsoluteFill style={{ pointerEvents: "none", opacity: t }}>
-      <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 55%, rgba(255,180,60,${0.08 * t}) 0%, transparent 65%)` }} />
     </AbsoluteFill>
   );
 };
 
-/* ============ 主合成 ============ */
-const LifeFunction = () => {
+const EndCard = () => {
   const f = useCurrentFrame();
-  const shake = getShake(f);
+  const o1 = interpolate(f, [1930, 1965], [0, 1], clamp);
+  const o2 = interpolate(f, [1995, 2035], [0, 1], clamp);
+  const o3 = interpolate(f, [2130, 2170], [0, 1], clamp);
+  return (
+    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+      <div style={{
+        opacity: o1, fontFamily: F, fontWeight: 900, fontSize: 76, color: "#dceaff", letterSpacing: 6,
+        textShadow: "0 0 40px rgba(0,180,255,0.4)",
+        transform: `translateY(${interpolate(f, [1930, 1965], [30, 0], clamp)}px)`,
+      }}>
+        从对嘴型少年，到真正的创作者
+      </div>
+      <div style={{
+        marginTop: 36, opacity: o2, fontFamily: F, fontWeight: 900, fontSize: 92,
+        color: "#ffd76a", letterSpacing: 8,
+        textShadow: "0 0 60px rgba(255,200,80,0.5),0 12px 40px rgba(0,0,0,0.8)",
+        transform: `scale(${interpolate(f, [1995, 2035], [0.88, 1], clamp)})`,
+      }}>
+        每一次跌落，都是为了下一次跃升
+      </div>
+      {/* 谢谢观看 */}
+      <div style={{
+        marginTop: 70, opacity: o3,
+        fontFamily: F, fontWeight: 900, fontSize: 68,
+        color: "rgba(255,255,255,0.9)", letterSpacing: 24,
+        textShadow: "0 0 30px rgba(255,200,100,0.3)",
+      }}>
+        谢 谢 观 看
+      </div>
+    </AbsoluteFill>
+  );
+};
 
+/* ========== 巅峰金色流光背景 ========== */
+const GoldOverlay = () => {
+  const f = useCurrentFrame();
+  const g = goldIntensity(f);
+  if (g <= 0.01) return null;
+  return (
+    <>
+      {/* 金色光晕 */}
+      <AbsoluteFill style={{
+        background: `radial-gradient(ellipse at 55% 35%, rgba(255,200,50,${0.18 * g}) 0%, rgba(255,160,30,${0.08 * g}) 40%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+      {/* 流光条纹 */}
+      {Array.from({ length: 7 }).map((_, i) => {
+        const y = ((f * 3 + i * 220) % 1400) - 200;
+        const w = 300 + Math.sin(f * 0.08 + i * 1.5) * 200;
+        return (
+          <div key={i} style={{
+            position: "absolute",
+            left: -200 + Math.sin(f * 0.04 + i * 2) * 400,
+            top: y,
+            width: w * 2,
+            height: 3 + Math.sin(f * 0.12 + i) * 2,
+            background: `linear-gradient(90deg, transparent, rgba(255,210,80,${0.22 * g}), rgba(255,255,220,${0.32 * g}), rgba(255,210,80,${0.22 * g}), transparent)`,
+            transform: `rotate(${-18 + i * 6}deg)`,
+            filter: `blur(${2 + Math.sin(i * 2) * 1.5}px)`,
+            pointerEvents: "none",
+          }} />
+        );
+      })}
+      {/* 金色粒子 */}
+      {Array.from({ length: 16 }).map((_, i) => {
+        const x = ((Math.sin(f * 0.02 + i * 2.3) * 0.5 + 0.5) * 1920);
+        const y = ((f * (1.2 + (i % 4) * 0.6) + i * 300) % 1300) - 100;
+        const r = 2 + (i % 3) * 2;
+        return (
+          <div key={`gp${i}`} style={{
+            position: "absolute", left: x, top: y,
+            width: r * 2, height: r * 2, borderRadius: "50%",
+            background: i % 2 ? "rgba(255,220,100,0.8)" : "rgba(255,255,255,0.7)",
+            boxShadow: `0 0 ${r * 6}px rgba(255,200,80,${0.5 * g})`,
+            opacity: g * (0.4 + 0.6 * Math.abs(Math.sin(f * 0.1 + i * 1.7))),
+            pointerEvents: "none",
+          }} />
+        );
+      })}
+    </>
+  );
+};
+
+const ProgressBar = () => {
+  const f = useCurrentFrame();
+  return (
+    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 5, background: "rgba(255,255,255,0.08)" }}>
+      <div style={{ height: "100%", width: `${(f / TOTAL) * 100}%`, background: "linear-gradient(90deg,#00d4ff,#ff44aa)" }} />
+    </div>
+  );
+};
+
+const GraphView = () => {
+  const f = useCurrentFrame();
+  const cam = camAt(f);
+  const shake = shakeAt(f);
+  const prog = drawP(f);
+  const tx = 960 - cam.cx * cam.s + shake.sx;
+  const ty = 540 - cam.cy * cam.s + shake.sy;
+
+  const penX = prog * SW;
+  let penY = pts[0][1];
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (penX >= pts[i][0] && penX <= pts[i + 1][0]) {
+      const t = (penX - pts[i][0]) / (pts[i + 1][0] - pts[i][0]);
+      penY = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t;
+      break;
+    }
+  }
+
+  return (
+    <AbsoluteFill style={{ overflow: "hidden" }}>
+      <div style={{
+        position: "absolute", left: 0, top: 0, width: SW, height: SH,
+        transform: `translate(${tx}px,${ty}px) scale(${cam.s})`, transformOrigin: "0 0",
+      }}>
+        <svg width={SW} height={SH} style={{ position: "absolute", left: 0, top: 0 }}>
+          <defs>
+            <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#00d4ff" />
+              <stop offset="50%" stopColor="#66aaff" />
+              <stop offset="100%" stopColor="#ff44aa" />
+            </linearGradient>
+            <linearGradient id="cf" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#0088ff" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#0088ff" stopOpacity="0.01" />
+            </linearGradient>
+            <clipPath id="dc"><rect x={0} y={0} width={Math.max(1, prog * SW)} height={SH} /></clipPath>
+          </defs>
+          {YL.map(({ y }, i) => <line key={`gy${i}`} x1={0} y1={y} x2={SW} y2={y} stroke="rgba(100,150,255,0.07)" strokeWidth={1.5} />)}
+          {XL.map(({ x }, i) => <line key={`gx${i}`} x1={x} y1={0} x2={x} y2={YB} stroke="rgba(100,150,255,0.07)" strokeWidth={1.5} />)}
+          <path d={fillD} fill="url(#cf)" clipPath="url(#dc)" />
+          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={30} strokeLinecap="round" opacity={0.12 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
+          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
+          {prog > 0.01 && prog < 0.99 && (
+            <g>
+              <circle cx={penX} cy={penY} r={22 + Math.sin(f * 0.35) * 10} fill="rgba(100,200,255,0.12)" />
+              <circle cx={penX} cy={penY} r={14} fill="#fff" opacity={0.85} />
+              <circle cx={penX} cy={penY} r={7} fill="#00d4ff" />
+            </g>
+          )}
+          {YL.map(({ y, t }, i) => <text key={`yl${i}`} x={80} y={y + 18} fill="rgba(150,180,230,0.55)" fontFamily={F} fontSize={85} fontWeight={700}>{t}</text>)}
+          {XL.map(({ x, t }, i) => <text key={`xl${i}`} x={x} y={YB + 130} fill="rgba(150,180,230,0.55)" fontFamily={F} fontSize={85} fontWeight={700} textAnchor="middle">{t}</text>)}
+          {ANNOS.map((a, i) => {
+            if (f < a.f || f >= a.f + a.d) return null;
+            const pop = spring({ frame: f - a.f, config: { damping: 11, stiffness: 120 }, durationInFrames: 20 });
+            const fade = interpolate(f, [a.f + a.d - 15, a.f + a.d], [1, 0], clamp);
+            const o = fade * Math.min(1, pop * 1.5);
+            const sc = 0.3 + pop * 0.7;
+            const tw = a.t.length * a.sz * 0.55 + 40;
+            return (
+              <g key={`an${i}`} opacity={o} transform={`translate(${a.x},${a.y}) scale(${sc})`}>
+                <rect x={-tw} y={-a.sz * 0.72} width={tw * 2} height={a.sz * 1.44} rx={a.sz * 0.16} fill="rgba(8,12,28,0.82)" stroke={a.c + "44"} strokeWidth={4} />
+                <text x={0} y={a.sz * 0.14} textAnchor="middle" fill={a.c} fontFamily={F} fontSize={a.sz} fontWeight={900}>{a.t}</text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const LifeGraph = () => {
+  const f = useCurrentFrame();
   const [handle] = React.useState(() => delayRender("fonts"));
   React.useEffect(() => {
     let done = false;
@@ -282,32 +395,20 @@ const LifeFunction = () => {
   }, [handle]);
 
   return (
-    <AbsoluteFill style={{ background: "#050c1a", fontFamily: F }}>
-      {/* 背景 */}
-      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 30%, #0d1e3a 0%, #050c1a 70%)" }} />
-      <AbsoluteFill style={{ background: "repeating-linear-gradient(0deg, transparent 0 4px, rgba(0,0,0,0.03) 4px 5px)" }} />
-
-      {/* 抖动容器 */}
-      <AbsoluteFill style={{ transform: `translate(${shake.x}px, ${shake.y}px)` }}>
-        <GraphStage />
-        <Header />
-        <EndingOverlay />
-      </AbsoluteFill>
-
-      {/* 字幕（不抖动） */}
-      <SubtitleBar />
-
-      {/* 暗角 */}
-      <AbsoluteFill style={{ pointerEvents: "none", background: "radial-gradient(ellipse at center, transparent 50%, rgba(2,5,12,0.55) 100%)" }} />
-
-      {/* 结尾淡出 */}
-      <AbsoluteFill style={{ background: "#000", opacity: interpolate(f, [TOTAL - 20, TOTAL - 2], [0, 1], clamp), pointerEvents: "none" }} />
+    <AbsoluteFill style={{ background: "linear-gradient(135deg,#060a18 0%,#0c1228 50%,#0a0e1e 100%)", fontFamily: F }}>
+      <GraphView />
+      <GoldOverlay />
+      <SubBar />
+      <TitleCard />
+      <EndCard />
+      <ProgressBar />
+      <AbsoluteFill style={{ pointerEvents: "none", background: "radial-gradient(ellipse at center,transparent 55%,rgba(2,4,12,0.5) 100%)" }} />
     </AbsoluteFill>
   );
 };
 
 export const RemotionRoot = () => (
-  <Composition id="ShortCircuitVideo" component={LifeFunction} durationInFrames={TOTAL} fps={30} width={1920} height={1080} />
+  <Composition id="ShortCircuitVideo" component={LifeGraph} durationInFrames={TOTAL} fps={30} width={1920} height={1080} />
 );
 
 registerRoot(RemotionRoot);
