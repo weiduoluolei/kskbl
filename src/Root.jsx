@@ -1,5 +1,5 @@
-// src/Root.jsx — 我的人生函数图像 v2
-// 修改：镜头停顿变速匹配字幕 / 大幅震动匹配事件 / 巅峰金色流光 / 谢谢观看
+// src/Root.jsx — 我的人生函数图像 v3
+// 修改：镜头拉远缩小 / 巅峰光粒子爆发 / 整体更有机更有活力
 
 import React from "react";
 import {
@@ -44,7 +44,6 @@ const FD = [
   [.895,21000],[.905,26000],[.915,32000],[.925,35500],[.935,37200],[.945,37900],
   [.955,38100],[.97,38150],[1,38200],
 ];
-
 const pts = FD.map(([p, fan]) => [p * SW, YB - (fan / 40000) * (YB - YT)]);
 
 function smoothPath(pp) {
@@ -59,34 +58,27 @@ function smoothPath(pp) {
 const curveD = smoothPath(pts);
 const fillD = curveD + ` L${SW},${YB} L0,${YB} Z`;
 
-/* ========== 相机：停顿 + 变速，对齐字幕节奏 ========== */
+/* ========== 相机（拉远，缩小缩放比） ========== */
 const CAM = [
-  // 开场：微距看起点，停住
-  { f: 0, cx: 200, cy: 4450, s: 2.6 },
-  { f: 60, cx: 250, cy: 4460, s: 2.5 },   // 慢慢动
-  { f: 130, cx: 250, cy: 4460, s: 2.5 },   // 停！对嘴型
-  // 缓慢平移看2020
-  { f: 330, cx: 800, cy: 4490, s: 2.1 },
-  { f: 475, cx: 900, cy: 4480, s: 2.0 },   // 停！录屏不温不火
-  // 突然拉升看暴涨！
-  { f: 560, cx: 1200, cy: 4200, s: 1.8 },  // 加速
-  { f: 650, cx: 2100, cy: 2800, s: 1.1 },  // 爆拉到暴涨点
-  { f: 800, cx: 2200, cy: 2650, s: 1.05 }, // 停！看暴涨
-  // 缓慢看下滑
-  { f: 985, cx: 3200, cy: 3200, s: 1.0 },
-  { f: 1125, cx: 4200, cy: 3150, s: 1.0 }, // 停！2020-2025
-  // 到2025特效
-  { f: 1330, cx: 8200, cy: 2900, s: 1.15 },
-  { f: 1415, cx: 8600, cy: 2750, s: 1.1 }, // 停！特效火了
-  { f: 1495, cx: 8900, cy: 2650, s: 1.05 }, // 停！1.8万
-  // 爆拉到巅峰
-  { f: 1570, cx: 9800, cy: 2000, s: 0.75 }, // 加速！
-  { f: 1650, cx: 10800, cy: 900, s: 0.5 },  // 冲上巅峰
-  { f: 1820, cx: 11000, cy: 750, s: 0.48 }, // 停！巅峰3.8万
-  // 拉远看全图
-  { f: 2000, cx: 7500, cy: 2400, s: 0.35 },
-  { f: 2120, cx: 6500, cy: 2600, s: 0.32 },
-  { f: 2250, cx: 6200, cy: 2700, s: 0.3 },
+  { f: 0, cx: 400, cy: 4300, s: 1.6 },
+  { f: 60, cx: 500, cy: 4320, s: 1.5 },
+  { f: 130, cx: 500, cy: 4320, s: 1.5 },
+  { f: 330, cx: 1200, cy: 4200, s: 1.3 },
+  { f: 475, cx: 1400, cy: 4180, s: 1.2 },
+  { f: 560, cx: 1800, cy: 3800, s: 1.0 },
+  { f: 650, cx: 2400, cy: 2600, s: 0.75 },
+  { f: 800, cx: 2500, cy: 2500, s: 0.72 },
+  { f: 985, cx: 3800, cy: 3100, s: 0.7 },
+  { f: 1125, cx: 4800, cy: 3050, s: 0.68 },
+  { f: 1330, cx: 8000, cy: 2800, s: 0.8 },
+  { f: 1415, cx: 8400, cy: 2700, s: 0.75 },
+  { f: 1495, cx: 8700, cy: 2600, s: 0.72 },
+  { f: 1570, cx: 9500, cy: 1800, s: 0.55 },
+  { f: 1650, cx: 10600, cy: 800, s: 0.38 },
+  { f: 1820, cx: 10800, cy: 700, s: 0.35 },
+  { f: 2000, cx: 7500, cy: 2200, s: 0.26 },
+  { f: 2120, cx: 6500, cy: 2400, s: 0.23 },
+  { f: 2250, cx: 6200, cy: 2500, s: 0.22 },
 ];
 
 function camAt(f) {
@@ -101,20 +93,20 @@ function camAt(f) {
   return { ...CAM[CAM.length - 1] };
 }
 
-/* ========== 大幅镜头震动（贴合事件） ========== */
+/* ========== 大幅震动 ========== */
 function shakeAt(f) {
   const events = [
-    { f: 560, p: 35, d: 30 },   // 特效视频火了（逼近暴涨）
-    { f: 650, p: 65, d: 50 },   // 粉丝暴涨1.6万（大震动！）
-    { f: 1380, p: 28, d: 25 },  // 特效又火了
-    { f: 1570, p: 45, d: 35 },  // 星图广告开始爆
-    { f: 1650, p: 80, d: 55 },  // 3.8万巅峰（最大震动！）
+    { f: 560, p: 35, d: 30 },
+    { f: 650, p: 70, d: 50 },
+    { f: 1380, p: 30, d: 25 },
+    { f: 1570, p: 50, d: 35 },
+    { f: 1650, p: 90, d: 60 },
   ];
   let sx = 0, sy = 0;
   for (const s of events) {
     const dt = f - s.f;
     if (dt >= 0 && dt < s.d) {
-      const decay = Math.pow(1 - dt / s.d, 1.6) * s.p;
+      const decay = Math.pow(1 - dt / s.d, 1.5) * s.p;
       sx += Math.sin(f * 2.7 + s.f * 0.31) * decay;
       sy += Math.cos(f * 3.3 + s.f * 0.47) * decay * 0.65;
     }
@@ -131,9 +123,8 @@ function drawP(f) {
   );
 }
 
-/* ========== 巅峰金色检测 ========== */
 function goldIntensity(f) {
-  return interpolate(f, [1550, 1650, 1900, 2050], [0, 1, 1, 0], clamp);
+  return interpolate(f, [1550, 1650, 1950, 2150], [0, 1, 1, 0], clamp);
 }
 
 /* ========== 字幕 ========== */
@@ -238,7 +229,6 @@ const EndCard = () => {
       }}>
         每一次跌落，都是为了下一次跃升
       </div>
-      {/* 谢谢观看 */}
       <div style={{
         marginTop: 70, opacity: o3,
         fontFamily: F, fontWeight: 900, fontSize: 68,
@@ -251,11 +241,17 @@ const EndCard = () => {
   );
 };
 
-/* ========== 巅峰金色流光背景 ========== */
+/* ========== 巅峰金色流光 + 光粒子爆发 ========== */
 const GoldOverlay = () => {
   const f = useCurrentFrame();
   const g = goldIntensity(f);
   if (g <= 0.01) return null;
+
+  /* 光粒子爆发：1650帧前后从屏幕中心四散 */
+  const burstFrame = 1650;
+  const burstT = (f - burstFrame) / 120;
+  const showBurst = burstT > -0.15 && burstT < 1.2;
+
   return (
     <>
       {/* 金色光晕 */}
@@ -263,37 +259,102 @@ const GoldOverlay = () => {
         background: `radial-gradient(ellipse at 55% 35%, rgba(255,200,50,${0.18 * g}) 0%, rgba(255,160,30,${0.08 * g}) 40%, transparent 70%)`,
         pointerEvents: "none",
       }} />
+
       {/* 流光条纹 */}
-      {Array.from({ length: 7 }).map((_, i) => {
-        const y = ((f * 3 + i * 220) % 1400) - 200;
-        const w = 300 + Math.sin(f * 0.08 + i * 1.5) * 200;
+      {Array.from({ length: 9 }).map((_, i) => {
+        const y = ((f * 3.5 + i * 170) % 1400) - 200;
+        const w = 350 + Math.sin(f * 0.1 + i * 1.5) * 250;
         return (
           <div key={i} style={{
             position: "absolute",
-            left: -200 + Math.sin(f * 0.04 + i * 2) * 400,
+            left: -200 + Math.sin(f * 0.05 + i * 2) * 500,
             top: y,
-            width: w * 2,
-            height: 3 + Math.sin(f * 0.12 + i) * 2,
+            width: w * 2.2,
+            height: 3 + Math.sin(f * 0.14 + i) * 2.5,
             background: `linear-gradient(90deg, transparent, rgba(255,210,80,${0.22 * g}), rgba(255,255,220,${0.32 * g}), rgba(255,210,80,${0.22 * g}), transparent)`,
-            transform: `rotate(${-18 + i * 6}deg)`,
+            transform: `rotate(${-22 + i * 5.5}deg)`,
             filter: `blur(${2 + Math.sin(i * 2) * 1.5}px)`,
             pointerEvents: "none",
           }} />
         );
       })}
-      {/* 金色粒子 */}
-      {Array.from({ length: 16 }).map((_, i) => {
-        const x = ((Math.sin(f * 0.02 + i * 2.3) * 0.5 + 0.5) * 1920);
-        const y = ((f * (1.2 + (i % 4) * 0.6) + i * 300) % 1300) - 100;
-        const r = 2 + (i % 3) * 2;
+
+      {/* 常驻金色粒子 */}
+      {Array.from({ length: 28 }).map((_, i) => {
+        const seed = i * 7.31;
+        const x = ((Math.sin(f * 0.018 + seed) * 0.5 + 0.5) * 1920);
+        const y = ((f * (1.0 + (i % 5) * 0.5) + i * 210) % 1350) - 120;
+        const r = 2 + (i % 4) * 2.5;
+        const alpha = g * (0.3 + 0.7 * Math.abs(Math.sin(f * 0.09 + seed * 2.1)));
         return (
           <div key={`gp${i}`} style={{
             position: "absolute", left: x, top: y,
             width: r * 2, height: r * 2, borderRadius: "50%",
-            background: i % 2 ? "rgba(255,220,100,0.8)" : "rgba(255,255,255,0.7)",
-            boxShadow: `0 0 ${r * 6}px rgba(255,200,80,${0.5 * g})`,
-            opacity: g * (0.4 + 0.6 * Math.abs(Math.sin(f * 0.1 + i * 1.7))),
+            background: i % 3 === 0 ? "rgba(255,230,120,0.9)" : i % 3 === 1 ? "rgba(255,255,255,0.8)" : "rgba(255,180,60,0.85)",
+            boxShadow: `0 0 ${r * 8}px rgba(255,200,80,${0.5 * g})`,
+            opacity: alpha, pointerEvents: "none",
+          }} />
+        );
+      })}
+
+      {/* 巅峰爆发粒子（1650帧四散） */}
+      {showBurst && Array.from({ length: 36 }).map((_, i) => {
+        const angle = (i / 36) * Math.PI * 2 + i * 0.3;
+        const speed = 300 + (i % 5) * 180;
+        const dist = Math.max(0, burstT) * speed;
+        const x = 960 + Math.cos(angle) * dist * 1.8;
+        const y = 540 + Math.sin(angle) * dist;
+        const life = Math.max(0, 1 - burstT * 0.9);
+        const r = (3 + (i % 4) * 3) * life;
+        return (
+          <div key={`bp${i}`} style={{
+            position: "absolute", left: x, top: y,
+            width: r * 2, height: r * 2, borderRadius: "50%",
+            background: i % 3 === 0 ? "#ffe080" : i % 3 === 1 ? "#fff" : "#ffaa30",
+            boxShadow: `0 0 ${r * 12}px rgba(255,200,80,${0.7 * life})`,
+            opacity: life * 0.85, pointerEvents: "none",
+          }} />
+        );
+      })}
+
+      {/* 巅峰光环（从中心扩散的圆环） */}
+      {showBurst && [0, 1, 2].map((ring) => {
+        const rt = burstT - ring * 0.18;
+        if (rt < 0) return null;
+        const radius = rt * 900;
+        const ringOpacity = Math.max(0, (1 - rt * 1.2) * 0.5);
+        return (
+          <div key={`ring${ring}`} style={{
+            position: "absolute", left: 960 - radius, top: 540 - radius,
+            width: radius * 2, height: radius * 2,
+            borderRadius: "50%",
+            border: `3px solid rgba(255,210,100,${ringOpacity})`,
+            boxShadow: `0 0 ${20 * ringOpacity}px rgba(255,200,80,${ringOpacity * 0.5})`,
             pointerEvents: "none",
+          }} />
+        );
+      })}
+    </>
+  );
+};
+
+/* ========== 活力粒子（全程） ========== */
+const AliveParticles = () => {
+  const f = useCurrentFrame();
+  return (
+    <>
+      {Array.from({ length: 20 }).map((_, i) => {
+        const seed = i * 13.7;
+        const x = ((Math.sin(f * 0.012 + seed) * 0.5 + 0.5) * 1920);
+        const y = ((f * (0.4 + (i % 3) * 0.35) + i * 340) % 1250) - 80;
+        const r = 1.5 + (i % 3) * 1.8;
+        const alpha = 0.12 + 0.18 * Math.abs(Math.sin(f * 0.06 + seed));
+        return (
+          <div key={`ap${i}`} style={{
+            position: "absolute", left: x, top: y,
+            width: r * 2, height: r * 2, borderRadius: "50%",
+            background: i % 2 ? "rgba(100,180,255,0.7)" : "rgba(255,255,255,0.6)",
+            opacity: alpha, pointerEvents: "none",
           }} />
         );
       })}
@@ -328,6 +389,9 @@ const GraphView = () => {
     }
   }
 
+  /* 曲线呼吸脉动 */
+  const breathe = 1 + Math.sin(f * 0.04) * 0.08;
+
   return (
     <AbsoluteFill style={{ overflow: "hidden" }}>
       <div style={{
@@ -347,20 +411,56 @@ const GraphView = () => {
             </linearGradient>
             <clipPath id="dc"><rect x={0} y={0} width={Math.max(1, prog * SW)} height={SH} /></clipPath>
           </defs>
+
+          {/* 网格 */}
           {YL.map(({ y }, i) => <line key={`gy${i}`} x1={0} y1={y} x2={SW} y2={y} stroke="rgba(100,150,255,0.07)" strokeWidth={1.5} />)}
           {XL.map(({ x }, i) => <line key={`gx${i}`} x1={x} y1={0} x2={x} y2={YB} stroke="rgba(100,150,255,0.07)" strokeWidth={1.5} />)}
+
           <path d={fillD} fill="url(#cf)" clipPath="url(#dc)" />
-          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={30} strokeLinecap="round" opacity={0.12 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
-          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
+
+          {/* 外层辉光（呼吸脉动） */}
+          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={35 * breathe} strokeLinecap="round"
+            opacity={0.1 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
+          {/* 中层辉光 */}
+          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={18 * breathe} strokeLinecap="round"
+            opacity={0.18 * prog} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
+          {/* 主曲线 */}
+          <path d={curveD} fill="none" stroke="url(#cg)" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round"
+            pathLength={1} strokeDasharray={1} strokeDashoffset={1 - prog} />
+
+          {/* 曲线上的流动光点 */}
+          {prog > 0.02 && Array.from({ length: 8 }).map((_, i) => {
+            const dotProg = ((f * 0.004 + i * 0.13) % 1) * prog;
+            const dx = dotProg * SW;
+            let dy = pts[0][1];
+            for (let j = 0; j < pts.length - 1; j++) {
+              if (dx >= pts[j][0] && dx <= pts[j + 1][0]) {
+                const t = (dx - pts[j][0]) / (pts[j + 1][0] - pts[j][0]);
+                dy = pts[j][1] + (pts[j + 1][1] - pts[j][1]) * t;
+                break;
+              }
+            }
+            return (
+              <circle key={`fd${i}`} cx={dx} cy={dy} r={6 + Math.sin(f * 0.15 + i * 2) * 3}
+                fill={i % 2 ? "rgba(100,220,255,0.6)" : "rgba(255,150,200,0.5)"} />
+            );
+          })}
+
+          {/* 笔尖光点 */}
           {prog > 0.01 && prog < 0.99 && (
             <g>
-              <circle cx={penX} cy={penY} r={22 + Math.sin(f * 0.35) * 10} fill="rgba(100,200,255,0.12)" />
+              <circle cx={penX} cy={penY} r={30 + Math.sin(f * 0.35) * 15} fill="rgba(100,200,255,0.1)" />
+              <circle cx={penX} cy={penY} r={18 + Math.sin(f * 0.5) * 5} fill="rgba(150,220,255,0.15)" />
               <circle cx={penX} cy={penY} r={14} fill="#fff" opacity={0.85} />
               <circle cx={penX} cy={penY} r={7} fill="#00d4ff" />
             </g>
           )}
+
+          {/* 坐标轴标签 */}
           {YL.map(({ y, t }, i) => <text key={`yl${i}`} x={80} y={y + 18} fill="rgba(150,180,230,0.55)" fontFamily={F} fontSize={85} fontWeight={700}>{t}</text>)}
           {XL.map(({ x, t }, i) => <text key={`xl${i}`} x={x} y={YB + 130} fill="rgba(150,180,230,0.55)" fontFamily={F} fontSize={85} fontWeight={700} textAnchor="middle">{t}</text>)}
+
+          {/* 标注 */}
           {ANNOS.map((a, i) => {
             if (f < a.f || f >= a.f + a.d) return null;
             const pop = spring({ frame: f - a.f, config: { damping: 11, stiffness: 120 }, durationInFrames: 20 });
@@ -397,6 +497,7 @@ const LifeGraph = () => {
   return (
     <AbsoluteFill style={{ background: "linear-gradient(135deg,#060a18 0%,#0c1228 50%,#0a0e1e 100%)", fontFamily: F }}>
       <GraphView />
+      <AliveParticles />
       <GoldOverlay />
       <SubBar />
       <TitleCard />
